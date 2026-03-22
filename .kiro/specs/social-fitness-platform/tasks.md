@@ -39,14 +39,14 @@ This implementation plan transforms the existing fitness tracker app into a soci
     - Handle privacy settings
     - _Requirements: 13.2, 13.3_
 
-- [ ] 4. Implement activity cloud storage in Supabase
-  - [ ] 4.1 Create activities table and RLS policies
+- [x] 4. Implement activity cloud storage in Supabase
+  - [x] 4.1 Create activities table and RLS policies
     - Define activities table schema with GPS route data
     - Set up RLS policies for activity access
     - Create indexes for user_id and created_at
     - _Requirements: 3.5_
 
-  - [ ] 4.2 Implement activity operations via Supabase client
+  - [x] 4.2 Implement activity operations via Supabase client
     - Use Supabase client for activity CRUD operations
     - Handle GPS route data storage (JSONB)
     - Implement activity privacy controls
@@ -55,21 +55,21 @@ This implementation plan transforms the existing fitness tracker app into a soci
 - [ ] 5. Checkpoint - Backend migrated to Supabase
   - Backend folder removed, using Supabase directly from mobile app
 
-- [ ] 6. Implement mobile app authentication with Supabase
-  - [ ] 6.1 Install and configure Supabase SDK and Google Sign-In
+- [x] 6. Implement mobile app authentication with Supabase
+  - [x] 6.1 Install and configure Supabase SDK and Google Sign-In
     - Add @supabase/supabase-js package
     - Configure Google OAuth in app
     - Set up Supabase configuration
     - _Requirements: 1.1, 1.2_
 
-  - [ ] 6.2 Create AuthService for mobile app with Supabase
+  - [x] 6.2 Create AuthService for mobile app with Supabase
     - Implement signInWithGoogle using Supabase Auth
     - Implement signOut method
     - Implement token storage with AsyncStorage
     - Implement automatic token refresh via Supabase
     - _Requirements: 1.2, 1.4, 1.6, 1.7_
 
-  - [ ] 6.3 Create sign-in screen UI
+  - [x] 6.3 Create sign-in screen UI
     - Design sign-in screen with Google button
     - Implement OAuth flow with Supabase
     - Handle authentication success/failure

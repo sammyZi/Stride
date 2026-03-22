@@ -6,10 +6,9 @@ import { ActivityIndicator } from 'react-native';
 import { useFonts, useTheme, usePermissions } from './src/hooks';
 import { Text } from './src/components';
 import { AppNavigator } from './src/navigation';
-import { SettingsProvider } from './src/context';
+import { SettingsProvider, AuthProvider, useAuth } from './src/context';
 import { PermissionsScreen } from './src/screens/onboarding/PermissionsScreen';
 import { SignInScreen } from './src/screens';
-import { authService } from './src/services';
 import storageService from './src/services/storage/StorageService';
 import { configurePerformance } from './src/utils/performance';
 
@@ -20,6 +19,7 @@ configurePerformance();
 function AppContent() {
   const { fontsLoaded, error } = useFonts();
   const { colors, isDark } = useTheme();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const {
     hasRequestedPermissions,
     hasLocationPermission,
@@ -29,8 +29,6 @@ function AppContent() {
 
   const [showPermissions, setShowPermissions] = useState(false);
   const [storageInitialized, setStorageInitialized] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
 
   // Initialize storage on app launch
   React.useEffect(() => {
@@ -45,32 +43,6 @@ function AppContent() {
     };
     initStorage();
   }, []);
-
-  // Check authentication status
-  React.useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const user = await authService.getCurrentUser();
-        setIsAuthenticated(!!user);
-      } catch (error) {
-        console.error('Error checking auth:', error);
-        setIsAuthenticated(false);
-      } finally {
-        setAuthLoading(false);
-      }
-    };
-
-    if (storageInitialized) {
-      checkAuth();
-    }
-
-    // Listen to auth state changes
-    const unsubscribe = authService.onAuthStateChanged((user) => {
-      setIsAuthenticated(!!user);
-    });
-
-    return () => unsubscribe();
-  }, [storageInitialized]);
 
   React.useEffect(() => {
     if (!permissionsLoading && !hasRequestedPermissions && isAuthenticated) {
@@ -103,7 +75,6 @@ function AppContent() {
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <SignInScreen
           onSignInSuccess={(isNewUser) => {
-            setIsAuthenticated(true);
             // If new user, show permissions screen
             if (isNewUser) {
               setShowPermissions(true);
@@ -140,7 +111,9 @@ function AppContent() {
 export default function App() {
   return (
     <SettingsProvider>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </SettingsProvider>
   );
 }
