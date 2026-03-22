@@ -12,8 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { Text, Button } from '../../components/common';
 import { useTheme } from '../../hooks';
+import { useAuth } from '../../context';
 import { Spacing, BorderRadius } from '../../constants/theme';
-import authService from '../../services/auth/AuthService';
 
 interface SignInScreenProps {
     onSignInSuccess: (isNewUser: boolean) => void;
@@ -24,6 +24,7 @@ interface SignInScreenProps {
  */
 export const SignInScreen: React.FC<SignInScreenProps> = ({ onSignInSuccess }) => {
     const { colors, isDark } = useTheme();
+    const { signInWithGoogle } = useAuth();
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -53,8 +54,8 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ onSignInSuccess }) =
                 throw new Error('No ID token received from Google Sign-In');
             }
 
-            // Sign in with Supabase using Google ID token
-            const result = await authService.signInWithGoogle(idToken);
+            // Sign in with Supabase using Google ID token via AuthContext
+            const result = await signInWithGoogle(idToken);
 
             onSignInSuccess(result.isNewUser);
         } catch (error: any) {
