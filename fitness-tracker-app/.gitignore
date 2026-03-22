@@ -29,10 +29,16 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files (NEVER COMMIT THESE!)
 .env*.local
 .env
 
+# Google Services (NEVER COMMIT THESE!)
+google-services.json
+GoogleService-Info.plist
+
 # typescript
 *.tsbuildinfo
+
+# Other
 kiro/

@@ -8,6 +8,8 @@ import { Text } from './src/components';
 import { AppNavigator } from './src/navigation';
 import { SettingsProvider } from './src/context';
 import { PermissionsScreen } from './src/screens/onboarding/PermissionsScreen';
+import { SignInScreen } from './src/screens';
+import { authService } from './src/services';
 import storageService from './src/services/storage/StorageService';
 import { configurePerformance } from './src/utils/performance';
 
@@ -27,6 +29,8 @@ function AppContent() {
 
   const [showPermissions, setShowPermissions] = useState(false);
   const [storageInitialized, setStorageInitialized] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
 
   // Initialize storage on app launch
   React.useEffect(() => {
@@ -42,13 +46,39 @@ function AppContent() {
     initStorage();
   }, []);
 
+  // Check authentication status
   React.useEffect(() => {
-    if (!permissionsLoading && !hasRequestedPermissions) {
+    const checkAuth = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        setIsAuthenticated(!!user);
+      } catch (error) {
+        console.error('Error checking auth:', error);
+        setIsAuthenticated(false);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    if (storageInitialized) {
+      checkAuth();
+    }
+
+    // Listen to auth state changes
+    const unsubscribe = authService.onAuthStateChanged((user) => {
+      setIsAuthenticated(!!user);
+    });
+
+    return () => unsubscribe();
+  }, [storageInitialized]);
+
+  React.useEffect(() => {
+    if (!permissionsLoading && !hasRequestedPermissions && isAuthenticated) {
       setShowPermissions(true);
     }
-  }, [permissionsLoading, hasRequestedPermissions]);
+  }, [permissionsLoading, hasRequestedPermissions, isAuthenticated]);
 
-  if (!fontsLoaded || permissionsLoading || !storageInitialized) {
+  if (!fontsLoaded || permissionsLoading || !storageInitialized || authLoading) {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -63,6 +93,24 @@ function AppContent() {
           Error loading fonts
         </Text>
       </SafeAreaView>
+    );
+  }
+
+  // Show sign-in screen if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <SignInScreen
+          onSignInSuccess={(isNewUser) => {
+            setIsAuthenticated(true);
+            // If new user, show permissions screen
+            if (isNewUser) {
+              setShowPermissions(true);
+            }
+          }}
+        />
+      </>
     );
   }
 

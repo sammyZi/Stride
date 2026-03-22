@@ -5,8 +5,7 @@
 This design document outlines the technical architecture for transforming the fitness tracker app into a social fitness platform. The system will consist of three main components:
 
 1. **React Native Mobile App** - The existing fitness tracker enhanced with authentication, social features, and cloud sync
-2. **Node.js Backend API** - Express-based REST API handling business logic and data operations
-3. **Firebase Services** - Authentication (Google OAuth) and Firestore database for cloud storage
+2. **Supabase Backend** - PostgreSQL database with Row Level Security, authentication, and real-time subscriptions
 
 The design prioritizes:
 - Seamless migration from local-only to cloud-based storage
@@ -31,23 +30,17 @@ The design prioritizes:
 │  └──────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
                             │
-                            │ HTTPS/REST API
+                            │ Supabase Client SDK
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                   Node.js Backend (Express)                  │
+│                      Supabase Backend                        │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ Auth         │  │ Social       │  │ Competition  │      │
-│  │ Middleware   │  │ Controller   │  │ Controller   │      │
+│  │ Supabase     │  │ PostgreSQL   │  │ Realtime     │      │
+│  │ Auth         │  │ Database     │  │ Subscriptions│      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            │ Firebase Admin SDK
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      Firebase Services                       │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │ Firebase     │  │ Cloud        │  │ Cloud        │      │
-│  │ Auth         │  │ Firestore    │  │ Messaging    │      │
+│  │ Row Level    │  │ Edge         │  │ Storage      │      │
+│  │ Security     │  │ Functions    │  │              │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -56,17 +49,17 @@ The design prioritizes:
 
 **Authentication Flow:**
 ```
-User → Google OAuth → Firebase Auth → Backend Verification → JWT Token → App
+User → Google OAuth → Supabase Auth → JWT Token → App
 ```
 
 **Activity Upload Flow:**
 ```
-Activity Tracking → Local Save → Sync Queue → Backend API → Firestore → Friends' Feeds
+Activity Tracking → Local Save → Sync Queue → Supabase Client → PostgreSQL → Friends' Feeds
 ```
 
 **Competition Update Flow:**
 ```
-Activity Complete → Backend API → Firestore Update → Cloud Function → Push Notifications → Leaderboard Refresh
+Activity Complete → Supabase Client → PostgreSQL Update → Edge Function → Push Notifications → Leaderboard Refresh
 ```
 
 ## Components and Interfaces
@@ -75,10 +68,10 @@ Activity Complete → Backend API → Firestore Update → Cloud Function → Pu
 
 #### 1.1 Authentication Module
 
-**Purpose:** Handle Google OAuth sign-in and token management
+**Purpose:** Handle Google OAuth sign-in and token management with Supabase
 
 **Key Classes:**
-- `AuthService`: Manages authentication state and token storage
+- `AuthService`: Manages authentication state and token storage using Supabase Auth
 - `GoogleAuthProvider`: Integrates with Google OAuth
 - `TokenManager`: Securely stores and refreshes auth tokens
 
@@ -107,31 +100,28 @@ interface User {
 }
 ```
 
-#### 1.2 API Client Module
+#### 1.2 Supabase Client Module
 
-**Purpose:** Handle all HTTP communication with backend
+**Purpose:** Handle all database operations with Supabase
 
 **Key Classes:**
-- `ApiClient`: Base HTTP client with authentication
-- `ActivityApi`: Activity-related endpoints
-- `SocialApi`: Friends and feed endpoints
-- `CompetitionApi`: Competition endpoints
+- `SupabaseClient`: Supabase client instance with authentication
+- `ActivityService`: Activity database operations
+- `SocialService`: Friends and feed database operations
+- `CompetitionService`: Competition database operations
 
 **Interfaces:**
 ```typescript
-interface ApiClient {
-  get<T>(endpoint: string, params?: object): Promise<T>;
-  post<T>(endpoint: string, data: object): Promise<T>;
-  put<T>(endpoint: string, data: object): Promise<T>;
-  delete<T>(endpoint: string): Promise<T>;
-  setAuthToken(token: string): void;
+interface SupabaseService {
+  from<T>(table: string): SupabaseQueryBuilder<T>;
+  auth: SupabaseAuthClient;
+  storage: SupabaseStorageClient;
+  realtime: SupabaseRealtimeClient;
 }
 
-interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
+interface DatabaseResponse<T> {
+  data: T | null;
+  error: PostgrestError | null;
 }
 ```
 
@@ -246,121 +236,45 @@ interface CreateCompetitionDto {
 type ChallengeType = 'MOST_DISTANCE' | 'MOST_ACTIVITIES' | 'LONGEST_ACTIVITY' | 'FASTEST_PACE';
 ```
 
-### 2. Backend Components
+### 2. Supabase Backend Components
 
-#### 2.1 Express Server Setup
+#### 2.1 PostgreSQL Database Schema
 
-**Purpose:** Main application server with middleware
+**Purpose:** Store all application data with Row Level Security
 
-**Structure:**
-```typescript
-// Server initialization
-const app = express();
+**Tables:**
+- `users`: User profiles and settings
+- `activities`: GPS-tracked activities
+- `friends`: Friend relationships
+- `reactions`: Activity reactions
+- `competitions`: Competition data
+- `participants`: Competition participants
+- `notifications`: User notifications
 
-// Middleware stack
-app.use(cors());
-app.use(express.json());
-app.use(helmet()); // Security headers
-app.use(morgan('combined')); // Logging
-app.use(authMiddleware); // Authentication (except public routes)
-app.use(errorHandler); // Global error handling
+#### 2.2 Row Level Security Policies
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes);
-app.use('/api/activities', activityRoutes);
-app.use('/api/friends', friendRoutes);
-app.use('/api/feed', feedRoutes);
-app.use('/api/competitions', competitionRoutes);
-```
+**Purpose:** Enforce data access rules at the database level
 
-#### 2.2 Authentication Middleware
+**Key Policies:**
+- Users can only read/write their own profile
+- Users can read friends' profiles (respecting privacy)
+- Users can only write their own activities
+- Users can read friends' non-private activities
+- Competition participants can read competition data
 
-**Purpose:** Verify Firebase tokens and attach user context
+#### 2.3 Edge Functions
 
-**Implementation:**
-```typescript
-interface AuthMiddleware {
-  verifyToken(req: Request, res: Response, next: NextFunction): Promise<void>;
-  optionalAuth(req: Request, res: Response, next: NextFunction): Promise<void>;
-}
+**Purpose:** Server-side logic for complex operations
 
-// Extends Express Request
-interface AuthenticatedRequest extends Request {
-  user: {
-    uid: string;
-    email: string;
-  };
-}
-```
-
-#### 2.3 Controllers
-
-**Purpose:** Handle business logic for each domain
-
-**Key Controllers:**
-- `AuthController`: Google OAuth verification, user creation
-- `UserController`: Profile management
-- `ActivityController`: Activity CRUD operations
-- `FriendController`: Friend management
-- `FeedController`: Activity feed generation
-- `CompetitionController`: Competition management
-
-**Example Interface:**
-```typescript
-interface ActivityController {
-  createActivity(req: AuthenticatedRequest, res: Response): Promise<void>;
-  getActivities(req: AuthenticatedRequest, res: Response): Promise<void>;
-  getActivityById(req: AuthenticatedRequest, res: Response): Promise<void>;
-  deleteActivity(req: AuthenticatedRequest, res: Response): Promise<void>;
-}
-```
-
-#### 2.4 Services Layer
-
-**Purpose:** Encapsulate business logic and Firestore operations
-
-**Key Services:**
-- `UserService`: User profile operations
-- `ActivityService`: Activity data management
-- `FriendService`: Friend relationship management
-- `CompetitionService`: Competition logic and leaderboard calculation
-- `NotificationService`: Push notification dispatch
-
-**Example Interface:**
-```typescript
-interface ActivityService {
-  createActivity(userId: string, activity: ActivityData): Promise<Activity>;
-  getUserActivities(userId: string, limit?: number): Promise<Activity[]>;
-  getActivityById(activityId: string): Promise<Activity | null>;
-  deleteActivity(activityId: string, userId: string): Promise<void>;
-  getActivitiesInTimeRange(userId: string, start: Date, end: Date): Promise<Activity[]>;
-}
-```
-
-#### 2.5 Firebase Integration
-
-**Purpose:** Interface with Firebase services
-
-**Key Modules:**
-- `FirebaseAdmin`: Initialize Firebase Admin SDK
-- `FirestoreService`: Database operations
-- `FirebaseAuthService`: Token verification
-- `CloudMessagingService`: Push notifications
-
-**Interfaces:**
-```typescript
-interface FirestoreService {
-  collection(name: string): CollectionReference;
-  doc(path: string): DocumentReference;
-  batch(): WriteBatch;
-  transaction<T>(updateFunction: (transaction: Transaction) => Promise<T>): Promise<T>;
-}
-```
+**Key Functions:**
+- `competition-reminder`: Send reminders for ending competitions
+- `competition-complete`: Calculate winners and send notifications
+- `leaderboard-update`: Update competition leaderboards
+- `notification-dispatch`: Send push notifications
 
 ## Data Models
 
-### Firestore Collections Structure
+### PostgreSQL Database Schema
 
 ```
 users/
@@ -860,31 +774,27 @@ it('should upload any completed activity to Firestore', async () => {
 - React Navigation
 - AsyncStorage for local caching
 - Expo Google Sign-In
-- Firebase SDK for client-side operations
+- Supabase Client SDK (@supabase/supabase-js)
 
 **Backend:**
-- Node.js 18+
-- Express.js
-- TypeScript
-- Firebase Admin SDK
-- Firebase Authentication
-- Cloud Firestore
-- Cloud Functions (for scheduled tasks)
+- Supabase (PostgreSQL database)
+- Supabase Auth (Google OAuth)
+- Supabase Realtime (real-time subscriptions)
+- Supabase Edge Functions (Deno runtime)
+- Supabase Storage (file storage)
 
 **Testing:**
 - Jest (unit tests)
 - fast-check (property-based tests)
-- Supertest (API integration tests)
 - React Native Testing Library (component tests)
 
 ### Deployment Architecture
 
 **Backend Deployment:**
-- Deploy to Google Cloud Run or Firebase Cloud Functions
+- Supabase Cloud (managed PostgreSQL + Auth + Storage + Edge Functions)
 - Environment-based configuration (dev, staging, production)
-- Automated CI/CD pipeline
-- Health check endpoints
-- Logging and monitoring
+- Built-in logging and monitoring
+- Health check endpoints via Edge Functions
 
 **Mobile App Deployment:**
 - Expo EAS Build for iOS and Android
@@ -895,15 +805,15 @@ it('should upload any completed activity to Firestore', async () => {
 ### Database Schema Optimization
 
 **Indexes:**
-- `activities`: userId, createdAt (for user activity history)
-- `friends`: user1Id, user2Id, status (for friend lookups)
-- `competitions`: status, endDate (for active competitions)
-- `notifications`: userId, read, createdAt (for notification queries)
+- `activities`: user_id, created_at (for user activity history)
+- `friends`: user1_id, user2_id, status (for friend lookups)
+- `competitions`: status, end_date (for active competitions)
+- `notifications`: user_id, read, created_at (for notification queries)
 
-**Denormalization:**
-- Store user display name and photo URL in activities for faster feed rendering
-- Cache friend count and activity count in user documents
-- Store leaderboard snapshot in competition documents
+**Materialized Views:**
+- User activity counts and statistics
+- Competition leaderboards (refreshed on activity insert)
+- Friend counts per user
 
 ### Scalability Considerations
 
@@ -917,7 +827,7 @@ it('should upload any completed activity to Firestore', async () => {
 - Activity feed: 20 items per page
 - Activity history: 50 items per page
 - Search results: 20 items per page
-- Use cursor-based pagination for Firestore queries
+- Use cursor-based pagination with PostgreSQL LIMIT/OFFSET
 
 **Rate Limiting:**
 - Search: 10 requests per minute per user
@@ -927,20 +837,20 @@ it('should upload any completed activity to Firestore', async () => {
 
 ### Migration Strategy
 
-**Phase 1: Backend Setup**
-1. Set up Firebase project
-2. Implement authentication endpoints
-3. Implement activity CRUD endpoints
-4. Deploy backend to staging
+**Phase 1: Supabase Setup**
+1. Create Supabase project
+2. Set up database schema and RLS policies
+3. Configure Google OAuth provider
+4. Test authentication flow
 
 **Phase 2: Mobile App Authentication**
-1. Implement Google OAuth sign-in
-2. Implement onboarding flow
-3. Implement token management
+1. Install Supabase client SDK
+2. Implement Google OAuth sign-in
+3. Implement onboarding flow
 4. Test authentication flow
 
 **Phase 3: Cloud Sync**
-1. Implement activity upload
+1. Implement activity upload to Supabase
 2. Implement sync queue
 3. Implement data migration tool
 4. Test offline/online transitions
@@ -954,7 +864,7 @@ it('should upload any completed activity to Firestore', async () => {
 **Phase 5: Competitions**
 1. Implement competition creation
 2. Implement leaderboard
-3. Implement notifications
+3. Implement notifications via Edge Functions
 4. Test competition flows
 
 **Phase 6: Production Launch**
