@@ -17,6 +17,8 @@ export { default as SharingService } from './sharing/SharingService';
 export { default as BatteryOptimizationService } from './battery/BatteryOptimizationService';
 export { authService } from './auth';
 export type { User, AuthResult } from './auth';
+export { profileService } from './profile';
+export type { UserProfile, ProfileUpdateData, ProfileCreateData } from './profile';
 
 // Services will be exported here as they are created
 // export { FirebaseService } from './firebase/FirebaseService';
