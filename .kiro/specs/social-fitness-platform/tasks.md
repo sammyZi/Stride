@@ -15,26 +15,25 @@ This implementation plan transforms the existing fitness tracker app into a soci
   - _Requirements: 2.1, 2.2, 2.3, 2.8_
 
 - [-] 2. Implement Supabase authentication system
-  - [-] 2.1 Configure Row Level Security policies for authentication
+  - [x] 2.1 Configure Row Level Security policies for authentication
     - Implement RLS policies for user data access
     - Add user context to authenticated requests
     - Handle token expiration and invalid tokens
     - _Requirements: 2.4, 2.6, 11.1_
 
-  - [~] 2.2 Configure Google OAuth in Supabase
+  - [ ] 2.2 Configure Google OAuth in Supabase
     - Enable Google provider in Supabase Auth settings
-    - Configure OAuth redirect URLs
-    - Test authentication flow
+    - Configure OAuth redirect URL
     - _Requirements: 1.3, 13.1_
 
-- [ ] 3. Implement user profile management in Supabase
-  - [ ] 3.1 Create user profile tables and RLS policies
+- [x] 3. Implement user profile management in Supabase
+  - [x] 3.1 Create user profile tables and RLS policies
     - Define users table schema with profile and privacy fields
     - Set up RLS policies for user data access
     - Create indexes for performance
     - _Requirements: 4.7, 5.4_
 
-  - [ ] 3.2 Implement user profile operations via Supabase client
+  - [x] 3.2 Implement user profile operations via Supabase client
     - Use Supabase client for profile CRUD operations
     - Implement profile photo upload to Supabase Storage
     - Handle privacy settings
