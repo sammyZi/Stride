@@ -9,7 +9,10 @@ A React Native mobile application built with Expo for tracking walking and runni
 - 📊 Comprehensive statistics and analytics
 - 🎯 Goal setting and achievement tracking
 - 📱 Background tracking with notifications
-- 💾 All data stored locally on device (privacy-focused)
+- 🔐 Google OAuth authentication
+- ☁️ Cloud storage with Firebase
+- 👥 Social features (coming soon)
+- 💾 Offline support with automatic sync
 - 📤 Data export for backups
 - 📈 Personal records and progress tracking
 
@@ -17,7 +20,10 @@ A React Native mobile application built with Expo for tracking walking and runni
 
 - **Framework**: React Native with Expo
 - **Language**: TypeScript
-- **Storage**: AsyncStorage (Local Device Storage)
+- **Authentication**: Google OAuth with Firebase
+- **Backend**: Node.js + Express + Firebase
+- **Database**: Cloud Firestore
+- **Local Storage**: AsyncStorage
 - **Maps**: React Native Maps
 - **Navigation**: React Navigation
 - **State Management**: React Context API
@@ -33,17 +39,35 @@ A React Native mobile application built with Expo for tracking walking and runni
 ## Installation
 
 1. Clone the repository
+
 2. Install dependencies:
    ```bash
    npm install
    ```
 
-3. (Optional) Create a `.env` file based on `.env.example` and add your Google Maps API key for enhanced map features
+3. Set up environment variables:
+   - Copy `.env.example` to `.env`
+   - Add your Google OAuth Client ID
+   - Add your Google Maps API key
+   - Configure backend API URL
 
-4. Start the development server:
+4. Start the backend server (see `../backend/README.md`):
+   ```bash
+   cd ../backend
+   npm start
+   ```
+
+5. Start the mobile app:
    ```bash
    npm start
    ```
+
+## Quick Start
+
+For quick authentication testing, see:
+- 📖 **[QUICK_START.md](./QUICK_START.md)** - Get started in 3 steps
+- 📚 **[AUTHENTICATION_GUIDE.md](./AUTHENTICATION_GUIDE.md)** - Detailed auth flow
+- ✅ **[TEST_AUTH.md](./TEST_AUTH.md)** - Testing checklist
 
 ## Project Structure
 
@@ -86,7 +110,25 @@ fitness-tracker-app/
 
 ## Configuration
 
-### Google Maps Setup (Optional)
+### Environment Variables
+
+Create a `.env` file with:
+```
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-client-id
+EXPO_PUBLIC_API_URL=http://localhost:3000/api
+EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your-maps-key
+```
+
+### Google OAuth Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create or select your project
+3. Enable Google+ API
+4. Create OAuth 2.0 credentials (Web application)
+5. Add authorized redirect URIs (see AUTHENTICATION_GUIDE.md)
+6. Copy the Client ID to your `.env` file
+
+### Google Maps Setup
 
 1. Get a Google Maps API key from [Google Cloud Console](https://console.cloud.google.com/)
 2. Enable Maps SDK for Android and iOS

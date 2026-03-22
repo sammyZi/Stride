@@ -2,6 +2,7 @@
   "expo": {
     "name": "FitTracker",
     "slug": "fittracker-app",
+    "scheme": "fittracker-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +15,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.fitnesstracker",
+      "bundleIdentifier": "com.fittracker.app",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "We need your location to track your activities",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location to track activities in the background",
@@ -26,7 +28,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0EA5E9"
       },
-      "package": "com.yourcompany.fitnesstracker",
+      "package": "com.fittracker.app",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -39,6 +41,7 @@
       "config": {
         "googleMaps": {}
       },
+      "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
@@ -58,6 +61,9 @@
           "icon": "./assets/notification-icon.png",
           "color": "#ffffff"
         }
+      ],
+      [
+        "@react-native-google-signin/google-signin"
       ]
     ]
   }

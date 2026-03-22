@@ -4,7 +4,8 @@
     "target": "esnext",
     "module": "esnext",
     "lib": [
-      "esnext"
+      "esnext",
+      "dom"
     ],
     "jsx": "react-native",
     "moduleResolution": "bundler",
@@ -19,7 +20,8 @@
       "@/*": [
         "src/*"
       ]
-    }
+    },
+    "types": ["node"]
   },
   "include": [
     "**/*.ts",
