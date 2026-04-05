@@ -433,6 +433,12 @@ class ActivityService {
       return;
     }
 
+    // Filter out low-accuracy GPS points (>50m accuracy causes phantom distance)
+    if (location.accuracy > 50) {
+      console.log('Skipping low-accuracy GPS point:', location.accuracy, 'm');
+      return;
+    }
+
     // Add location to route
     const routePoint: RoutePoint = {
       latitude: location.latitude,
@@ -558,12 +564,25 @@ class ActivityService {
     for (let i = 1; i < route.length; i++) {
       const prev = route[i - 1];
       const curr = route[i];
-      totalDistance += this.calculateDistance(
+      const segmentDistance = this.calculateDistance(
         prev.latitude,
         prev.longitude,
         curr.latitude,
         curr.longitude
       );
+
+      // Spike filtering: skip segments where implied speed > 50 km/h
+      // (unrealistic for walking/running, likely GPS jump)
+      const timeDiffSec = (curr.timestamp - prev.timestamp) / 1000;
+      if (timeDiffSec > 0) {
+        const speedKmh = (segmentDistance / 1000) / (timeDiffSec / 3600);
+        if (speedKmh > 50) {
+          console.log('Skipping GPS spike: implied speed', speedKmh.toFixed(1), 'km/h');
+          continue;
+        }
+      }
+
+      totalDistance += segmentDistance;
     }
 
     return totalDistance;
@@ -600,12 +619,20 @@ class ActivityService {
    * @returns Pace in seconds per kilometer
    */
   private calculateAveragePace(distance: number, duration: number): number {
-    if (distance === 0 || duration === 0) {
+    if (distance <= 0 || duration <= 0) {
       return 0;
     }
 
     const distanceKm = distance / 1000;
-    return duration / distanceKm; // seconds per km
+    const pace = duration / distanceKm; // seconds per km
+
+    // Bounds check: return 0 for unrealistic paces
+    // 90 sec/km (~1:30/km) to 3600 sec/km (~60:00/km)
+    if (pace < 90 || pace > 3600 || !isFinite(pace)) {
+      return 0;
+    }
+
+    return pace;
   }
 
   /**
@@ -629,28 +656,44 @@ class ActivityService {
       return 0;
     }
 
-    // Calculate distance covered in time window
+    // Calculate distance covered in time window (with spike filtering)
     let distance = 0;
     for (let i = 1; i < recentPoints.length; i++) {
       const prev = recentPoints[i - 1];
       const curr = recentPoints[i];
-      distance += this.calculateDistance(
+      const segDist = this.calculateDistance(
         prev.latitude,
         prev.longitude,
         curr.latitude,
         curr.longitude
       );
+
+      // Skip GPS spikes (implied speed > 50 km/h)
+      const segTime = (curr.timestamp - prev.timestamp) / 1000;
+      if (segTime > 0) {
+        const speedKmh = (segDist / 1000) / (segTime / 3600);
+        if (speedKmh > 50) continue;
+      }
+
+      distance += segDist;
     }
 
     // Calculate time span
     const timeSpan = (recentPoints[recentPoints.length - 1].timestamp - recentPoints[0].timestamp) / 1000;
 
-    if (distance === 0 || timeSpan === 0) {
+    if (distance <= 0 || timeSpan <= 0) {
       return 0;
     }
 
     const distanceKm = distance / 1000;
-    return timeSpan / distanceKm; // seconds per km
+    const pace = timeSpan / distanceKm; // seconds per km
+
+    // Bounds check: return 0 for unrealistic current pace
+    if (pace < 90 || pace > 3600 || !isFinite(pace)) {
+      return 0;
+    }
+
+    return pace;
   }
 
   /**
@@ -726,30 +769,24 @@ class ActivityService {
     const durationHours = duration / 3600;
     const speed = distanceKm / durationHours;
 
-    // MET values based on activity type and speed
+    // MET values based on speed (activity type is always 'activity')
     let met: number;
 
-    if (this.currentActivity.type === 'walking') {
-      if (speed < 4) {
-        met = 3.0; // Slow walking
-      } else if (speed < 5.5) {
-        met = 3.5; // Moderate walking
-      } else if (speed < 6.5) {
-        met = 4.3; // Brisk walking
-      } else {
-        met = 5.0; // Very brisk walking
-      }
+    // Determine activity intensity from speed
+    if (speed < 3.2) {
+      met = 2.5; // Slow walking
+    } else if (speed < 4.8) {
+      met = 3.5; // Moderate walking
+    } else if (speed < 6.4) {
+      met = 5.0; // Brisk walking
+    } else if (speed < 8) {
+      met = 7.0; // Very brisk walking / light jogging
+    } else if (speed < 10) {
+      met = 9.8; // Running (moderate)
+    } else if (speed < 12) {
+      met = 11.5; // Running (fast)
     } else {
-      // Running
-      if (speed < 8) {
-        met = 8.0; // Jogging
-      } else if (speed < 11) {
-        met = 10.0; // Running
-      } else if (speed < 13) {
-        met = 11.5; // Fast running
-      } else {
-        met = 13.0; // Very fast running
-      }
+      met = 13.5; // Running (very fast)
     }
 
     // Calories = MET * weight(kg) * duration(hours)

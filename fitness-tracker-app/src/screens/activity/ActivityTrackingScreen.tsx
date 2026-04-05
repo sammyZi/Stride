@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Dimensions,
   Platform,
   BackHandler,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,13 +19,23 @@ import locationService from '../../services/location';
 import NotificationService from '../../services/notification';
 import AudioAnnouncementService from '../../services/audio';
 import HapticFeedbackService from '../../services/haptic';
+import BatteryOptimizationService from '../../services/battery/BatteryOptimizationService';
 import { useConfirmModal } from '../../hooks/useConfirmModal';
 import { useSettings } from '../../context';
-import { formatDuration, formatDistance, formatPace } from '../../utils';
+import { formatDuration, formatDistance, formatPace, formatCalories } from '../../utils';
 import { Colors } from '../../constants/theme';
 import { ActivityType } from '../../types';
 
 const { width } = Dimensions.get('window');
+
+// Helper: color-coded pace indicator
+const getPaceColor = (paceSecondsPerKm: number): string => {
+  if (paceSecondsPerKm <= 0) return Colors.textSecondary;
+  if (paceSecondsPerKm < 360) return '#00D9A3';  // Fast — green
+  if (paceSecondsPerKm < 600) return '#4ECDC4';  // Good — teal
+  if (paceSecondsPerKm < 900) return Colors.warning;  // Moderate — orange
+  return Colors.error;  // Slow — red
+};
 
 interface ActivityTrackingScreenProps {
   onBack?: () => void;
@@ -41,12 +52,31 @@ export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ 
   const [currentPace, setCurrentPace] = useState(0);
   const [averagePace, setAveragePace] = useState(0);
   const [steps, setSteps] = useState(0);
+  const [calories, setCalories] = useState(0);
   const [currentLocation, setCurrentLocation] = useState<any>(null);
   const [routePoints, setRoutePoints] = useState<any[]>([]);
   const [activityStartTime, setActivityStartTime] = useState<number>(0);
   const [pausedTime, setPausedTime] = useState<number>(0);
   const [lastPauseTime, setLastPauseTime] = useState<number>(0);
   const timerIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Pulse animation for live pace indicator
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (isTracking && !isPaused) {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        ])
+      );
+      pulse.start();
+      return () => pulse.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isTracking, isPaused]);
 
   // Update services when settings change
   useEffect(() => {
@@ -227,6 +257,7 @@ export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ 
       setCurrentPace(metrics.currentPace);
       setAveragePace(metrics.averagePace);
       setSteps(metrics.steps);
+      setCalories(metrics.calories);
 
       // Check for distance milestones and announce
       if (AudioAnnouncementService.shouldAnnounce(metrics.distance)) {
@@ -256,6 +287,11 @@ export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ 
 
   const handleStart = async () => {
     try {
+      // Always ensure battery optimization is unrestricted before tracking
+      if (Platform.OS === 'android') {
+        await BatteryOptimizationService.ensureBatteryExemption('tracking', true);
+      }
+
       // Check if there's already an activity in progress
       if (ActivityService.isActivityInProgress()) {
         console.log('Activity already in progress, stopping it first');
@@ -402,6 +438,7 @@ export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ 
     setCurrentPace(0);
     setAveragePace(0);
     setSteps(0);
+    setCalories(0);
     setRoutePoints([]);
     setActivityStartTime(0);
     setPausedTime(0);
@@ -429,6 +466,8 @@ export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ 
       console.log('Could not restart location tracking:', error);
     }
   };
+
+  const currentPaceColor = getPaceColor(currentPace);
 
   return (
     <View style={styles.container}>
@@ -470,33 +509,62 @@ export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ 
         </View>
       </SafeAreaView>
 
-      {/* Metrics Cards */}
+      {/* Compact Metrics Overlay */}
       <SafeAreaView style={styles.metricsContainer} edges={['top']}>
+        {/* Row 1: Time | Distance | Steps */}
         <View style={styles.metricsRow}>
           <View style={styles.metricCard}>
-            <Ionicons name="time-outline" size={18} color={Colors.primary} />
-            <Text style={styles.metricValue}>{formatDuration(duration)}</Text>
+            <View style={styles.metricInner}>
+              <Ionicons name="time-outline" size={16} color={Colors.primary} />
+              <Text style={styles.metricValue}>{formatDuration(duration)}</Text>
+            </View>
             <Text style={styles.metricLabel}>Time</Text>
           </View>
-
           <View style={styles.metricCard}>
-            <Ionicons name="navigate-outline" size={18} color={Colors.primary} />
-            <Text style={styles.metricValue}>{formatDistance(distance, settings.units)}</Text>
+            <View style={styles.metricInner}>
+              <Ionicons name="navigate-outline" size={16} color={Colors.primary} />
+              <Text style={styles.metricValue}>{formatDistance(distance, settings.units)}</Text>
+            </View>
             <Text style={styles.metricLabel}>Distance</Text>
+          </View>
+          <View style={styles.metricCard}>
+            <View style={styles.metricInner}>
+              <Ionicons name="footsteps-outline" size={16} color={Colors.primary} />
+              <Text style={styles.metricValue}>{steps.toLocaleString()}</Text>
+            </View>
+            <Text style={styles.metricLabel}>Steps</Text>
           </View>
         </View>
 
+        {/* Row 2: Current Pace | Avg Pace | Calories */}
         <View style={styles.metricsRow}>
-          <View style={styles.metricCard}>
-            <Ionicons name="speedometer-outline" size={18} color={Colors.primary} />
-            <Text style={styles.metricValue}>{formatPace(averagePace, settings.units)}</Text>
-            <Text style={styles.metricLabel}>Pace</Text>
+          <View style={[styles.metricCard, styles.paceCard, { borderLeftColor: currentPaceColor }]}>
+            <View style={styles.metricInner}>
+              <Ionicons name="flash" size={16} color={currentPaceColor} />
+              {isTracking && !isPaused && (
+                <Animated.View style={[styles.liveDot, { opacity: pulseAnim, backgroundColor: currentPaceColor }]} />
+              )}
+              <Text style={[styles.metricValue, { color: currentPaceColor }]}>
+                {currentPace > 0 ? formatPace(currentPace, settings.units).split(' ')[0] : '--:--'}
+              </Text>
+            </View>
+            <Text style={styles.metricLabel}>Current</Text>
           </View>
-
+          <View style={[styles.metricCard, styles.avgPaceCard]}>
+            <View style={styles.metricInner}>
+              <Ionicons name="speedometer" size={16} color={Colors.primary} />
+              <Text style={styles.metricValue}>
+                {averagePace > 0 ? formatPace(averagePace, settings.units).split(' ')[0] : '--:--'}
+              </Text>
+            </View>
+            <Text style={styles.metricLabel}>Avg Pace</Text>
+          </View>
           <View style={styles.metricCard}>
-            <Ionicons name="footsteps-outline" size={18} color={Colors.primary} />
-            <Text style={styles.metricValue}>{steps}</Text>
-            <Text style={styles.metricLabel}>Steps</Text>
+            <View style={styles.metricInner}>
+              <Ionicons name="flame" size={16} color="#FF6B6B" />
+              <Text style={styles.metricValue}>{Math.round(calories)}</Text>
+            </View>
+            <Text style={styles.metricLabel}>Calories</Text>
           </View>
         </View>
       </SafeAreaView>
@@ -625,8 +693,8 @@ const styles = StyleSheet.create({
   metricsContainer: {
     position: 'absolute',
     top: 0,
-    left: 16,
-    right: 16,
+    left: 12,
+    right: 12,
     paddingTop: 60,
   },
   metricsRow: {
@@ -636,27 +704,52 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 255, 255, 0.90)',
     borderRadius: 12,
-    padding: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 64,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  metricInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    marginBottom: 2,
   },
   metricValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: 'Poppins_700Bold',
     color: Colors.textPrimary,
-    marginTop: 4,
+    letterSpacing: -0.3,
   },
   metricLabel: {
-    fontSize: 11,
-    fontFamily: 'Poppins_400Regular',
+    fontSize: 10,
+    fontFamily: 'Poppins_500Medium',
     color: Colors.textSecondary,
     marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  paceCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  },
+  avgPaceCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.90)',
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#00D9A3',
+    marginLeft: 2,
   },
   bottomContainer: {
     position: 'absolute',

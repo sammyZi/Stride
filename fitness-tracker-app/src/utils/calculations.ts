@@ -69,34 +69,54 @@ export function calculateRouteDistance(route: RoutePoint[] | Location[]): number
 
 /**
  * Calculate pace in seconds per kilometer
+ * Returns 0 for invalid or extreme values
  * 
  * @param distance - Distance in meters
  * @param duration - Duration in seconds
- * @returns Pace in seconds per kilometer (0 if distance is 0)
+ * @returns Pace in seconds per kilometer (0 if distance is 0 or pace is unrealistic)
  */
 export function calculatePace(distance: number, duration: number): number {
-  if (distance === 0) {
+  if (distance <= 0 || duration <= 0) {
     return 0;
   }
 
   const distanceInKm = distance / 1000;
-  return duration / distanceInKm; // seconds per km
+  const pace = duration / distanceInKm; // seconds per km
+
+  // Filter out unrealistic pace values
+  // Fastest human pace: ~1:30/km (90 sec/km) — elite sprinters in short bursts
+  // Slowest reasonable pace: ~60:00/km (3600 sec/km) — very slow walk
+  if (pace < 90 || pace > 3600 || !isFinite(pace)) {
+    return 0;
+  }
+
+  return pace;
 }
 
 /**
  * Calculate pace in seconds per mile
+ * Returns 0 for invalid or extreme values
  * 
  * @param distance - Distance in meters
  * @param duration - Duration in seconds
- * @returns Pace in seconds per mile (0 if distance is 0)
+ * @returns Pace in seconds per mile (0 if distance is 0 or pace is unrealistic)
  */
 export function calculatePacePerMile(distance: number, duration: number): number {
-  if (distance === 0) {
+  if (distance <= 0 || duration <= 0) {
     return 0;
   }
 
   const distanceInMiles = metersToMiles(distance);
-  return duration / distanceInMiles; // seconds per mile
+  const pace = duration / distanceInMiles; // seconds per mile
+
+  // Filter out unrealistic pace values
+  // Fastest human pace: ~2:25/mi (145 sec/mi) — elite sprinters
+  // Slowest reasonable pace: ~96:00/mi (5800 sec/mi) — very slow walk
+  if (pace < 145 || pace > 5800 || !isFinite(pace)) {
+    return 0;
+  }
+
+  return pace;
 }
 
 /**

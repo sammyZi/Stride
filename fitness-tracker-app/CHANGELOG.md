@@ -67,3 +67,153 @@ MIN_DISTANCE_BETWEEN_POINTS: 3m
 - Existing activities with 'walking' or 'running' types will still display correctly
 - New activities will be created with type 'activity'
 - No data migration needed - backward compatible
+
+
+---
+
+## Centralized Configuration & Battery Optimization Improvements
+
+### Changes Made
+
+#### 1. Single Source of Truth for Configuration
+- **Created** `src/config/tracking.ts` - centralized configuration file
+- **Consolidated** all GPS, tracking, battery, and notification settings
+- **Removed** duplicate hardcoded values across services
+- **Added** configuration validation function
+- **Removed** Supabase references (not needed until social features are implemented)
+
+#### 2. Enhanced Battery Optimization Service
+- **Added** battery status caching to reduce checks
+- **Implemented** check before EVERY activity tracking session
+- **Added** configurable cooldown period (24 hours default)
+- **Improved** user messaging with clearer instructions
+- **Added** status tracking and persistence
+- **Implemented** methods to mark optimization as disabled
+
+#### 3. Configuration Sections
+
+**GPS Configuration:**
+- Time interval: 2000ms
+- Distance interval: 3m
+- Accuracy threshold: 30m
+- Stationary speed threshold: 0.3 m/s
+- Kalman filter parameters: Q=2, R=8
+- Minimum distance between points: 3m
+
+**Battery Configuration:**
+- Request cooldown: 24 hours
+- Check on app start: enabled
+- Check before tracking: enabled
+- Show prompt on first launch: enabled
+- Skip cooldown on first launch: enabled
+
+**Activity Configuration:**
+- Metrics update interval: 1000ms
+- Minimum activity distance: 50m
+- Minimum activity duration: 60s
+
+**Calorie Configuration:**
+- Speed-based MET ranges (2.5 - 13.5 METs)
+- Automatic intensity detection
+
+### Technical Details
+
+**New Files:**
+- `src/config/tracking.ts` - Single source of truth for all configuration
+- `docs/CONFIGURATION.md` - Comprehensive configuration guide
+
+**Modified Files:**
+- `src/services/battery/BatteryOptimizationService.ts` - Enhanced with status caching and better checks
+- `src/services/location/LocationService.ts` - Uses centralized config
+- `src/services/location/BackgroundLocationTask.ts` - Uses centralized config
+
+**Configuration Structure:**
+```typescript
+TRACKING_CONFIG = {
+  GPS: { ... },
+  BACKGROUND: { ... },
+  ACTIVITY: { ... },
+  CALORIE: { ... },
+  BATTERY: { ... },
+  NOTIFICATION: { ... },
+  AUDIO: { ... },
+  MAP: { ... },
+  STORAGE: { ... },
+  PERMISSION: { ... },
+}
+```
+
+### Battery Optimization Flow
+
+1. **App Start**: Optional check if battery optimization is enabled
+2. **Before Tracking**: ALWAYS check before starting activity
+3. **User Prompt**: Show dialog with clear instructions
+4. **Settings**: Direct user to battery optimization settings
+5. **Cooldown**: Respect 24-hour cooldown between prompts
+6. **Status Cache**: Cache status for 5 minutes to reduce checks
+
+### Benefits
+
+1. **Consistency**: All services use the same configuration values
+2. **Maintainability**: Single place to update configuration
+3. **Reliability**: Battery checks ensure background tracking works
+4. **User Experience**: Clear guidance on battery optimization
+5. **Flexibility**: Easy to tune configuration for different needs
+6. **Documentation**: Comprehensive guide for configuration changes
+
+### Usage Examples
+
+**Import Configuration:**
+```typescript
+import { GPS_CONFIG, BATTERY_CONFIG } from '@/config/tracking';
+
+// Use GPS settings
+const interval = GPS_CONFIG.TIME_INTERVAL;
+const threshold = GPS_CONFIG.ACCURACY_THRESHOLD;
+```
+
+**Check Battery Before Tracking:**
+```typescript
+import batteryOptimizationService from '@/services/battery/BatteryOptimizationService';
+
+// Automatically checks and prompts if needed
+const exempted = await batteryOptimizationService.checkBeforeTracking();
+```
+
+**Get Battery Status:**
+```typescript
+const status = await batteryOptimizationService.getBatteryStatus();
+console.log('Optimized:', status.isOptimized);
+console.log('Last checked:', new Date(status.lastChecked));
+```
+
+### Migration Notes
+
+- Existing code with hardcoded values should be updated to use centralized config
+- Battery optimization checks are now automatic before each tracking session
+- No breaking changes - all existing functionality preserved
+- Configuration can be tuned without code changes
+
+### Troubleshooting
+
+**If GPS tracking is unreliable:**
+- Check `GPS_CONFIG.ACCURACY_THRESHOLD` (may be too strict)
+- Verify battery optimization is disabled
+- Ensure background location permission is granted
+
+**If battery drains too fast:**
+- Increase `GPS_CONFIG.TIME_INTERVAL` to 3000-5000ms
+- Increase `GPS_CONFIG.DISTANCE_INTERVAL` to 5-10m
+
+**If too many battery prompts:**
+- Increase `BATTERY_CONFIG.REQUEST_COOLDOWN_HOURS`
+- User needs to actually disable battery optimization in settings
+
+### Documentation
+
+See `docs/CONFIGURATION.md` for:
+- Detailed configuration guide
+- Tuning guidelines
+- Best practices
+- Troubleshooting tips
+- Migration instructions
