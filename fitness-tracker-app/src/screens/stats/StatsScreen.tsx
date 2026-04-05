@@ -294,7 +294,7 @@ export const StatsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.surface,
   },
   header: {
     height: 60,
@@ -311,13 +311,17 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
     alignItems: 'center',
-    borderRadius: BorderRadius.medium,
-    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.large,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   activeTab: {
     backgroundColor: `${Colors.primary}15`,
+    borderColor: Colors.primary,
   },
   scrollView: {
     flex: 1,
@@ -328,7 +332,7 @@ const styles = StyleSheet.create({
   summaryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
+    justifyContent: 'space-between',
     marginBottom: Spacing.lg,
   },
   chartsSection: {
@@ -365,7 +369,7 @@ const styles = StyleSheet.create({
   comparisonItem: {
     flex: 1,
     padding: Spacing.lg,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.surface,
     borderRadius: BorderRadius.medium,
   },
   comparisonValue: {

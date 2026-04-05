@@ -59,6 +59,8 @@ export const ProfileScreen: React.FC = () => {
   const [editName, setEditName] = useState('');
   const [editWeight, setEditWeight] = useState('');
   const [editHeight, setEditHeight] = useState('');
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
 
   useEffect(() => {
     loadProfile();
@@ -101,6 +103,34 @@ export const ProfileScreen: React.FC = () => {
     }
   };
 
+  const handleAvatarPress = () => {
+    if (profile?.profilePictureUri) {
+      setImageViewerVisible(true);
+    } else {
+      handlePickImage();
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    try {
+      const updatedProfile: UserProfile = {
+        ...profile!,
+        profilePictureUri: undefined,
+        updatedAt: Date.now(),
+      };
+      await StorageService.saveUserProfile(updatedProfile);
+      setProfile(updatedProfile);
+    } catch (error) {
+      console.error('Error removing image:', error);
+      showConfirm(
+        'Error',
+        'Failed to remove profile picture',
+        [{ text: 'OK', onPress: hideModal, style: 'default' }],
+        { icon: 'alert-circle', iconColor: Colors.error }
+      );
+    }
+  };
+
 
 
   const handlePickImage = async () => {
@@ -119,25 +149,21 @@ export const ProfileScreen: React.FC = () => {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
+        allowsEditing: true, 
         aspect: [1, 1],
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets[0]) {
-        const updatedProfile: UserProfile = {
-          ...profile!,
-          profilePictureUri: result.assets[0].uri,
-          updatedAt: Date.now(),
-        };
-        await StorageService.saveUserProfile(updatedProfile);
-        setProfile(updatedProfile);
+        // Preview the photo first instead of instantly saving
+        setPendingImageUri(result.assets[0].uri);
+        setImageViewerVisible(true);
       }
     } catch (error) {
       console.error('Error picking image:', error);
       showConfirm(
         'Error',
-        'Failed to update profile picture',
+        'Failed to pick profile picture',
         [{ text: 'OK', onPress: hideModal, style: 'default' }],
         { icon: 'alert-circle', iconColor: Colors.error }
       );
@@ -305,7 +331,7 @@ export const ProfileScreen: React.FC = () => {
         {/* Profile Picture and Name */}
         <Card style={styles.profileCard}>
           <View style={styles.profileHeader}>
-            <TouchableOpacity onPress={handlePickImage} style={styles.avatarContainer}>
+            <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarContainer}>
               {profile?.profilePictureUri ? (
                 <Image
                   source={{ uri: profile.profilePictureUri }}
@@ -525,6 +551,103 @@ export const ProfileScreen: React.FC = () => {
         loadingMessage={modalState.loadingMessage}
         onRequestClose={hideModal}
       />
+
+      {/* Full Screen Image Viewer Modal */}
+      <Modal
+        visible={imageViewerVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setImageViewerVisible(false);
+          setPendingImageUri(null);
+        }}
+      >
+        <View style={styles.imageViewerOverlay}>
+          <TouchableOpacity 
+            style={styles.imageViewerClose} 
+            onPress={() => {
+              setImageViewerVisible(false);
+              setPendingImageUri(null);
+            }}
+          >
+            <Ionicons name="close" size={32} color="#ffffff" />
+          </TouchableOpacity>
+
+          {(pendingImageUri || profile?.profilePictureUri) && (
+            <>
+              <Image
+                source={{ uri: (pendingImageUri || profile?.profilePictureUri) as string }}
+                style={styles.fullScreenImage}
+                resizeMode="contain"
+              />
+              <View style={styles.imageViewerActions}>
+                {pendingImageUri ? (
+                  // Preview Mode Actions
+                  <>
+                    <TouchableOpacity 
+                      style={[styles.imageViewerButton, styles.imageViewerButtonDelete]} 
+                      onPress={() => {
+                        setImageViewerVisible(false);
+                        setPendingImageUri(null);
+                      }}
+                    >
+                      <Ionicons name="close-outline" size={20} color={Colors.error} />
+                      <Text style={styles.imageViewerButtonTextDelete}>Cancel</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={[styles.imageViewerButton, { backgroundColor: Colors.success }]} 
+                      onPress={async () => {
+                        try {
+                          const updatedProfile: UserProfile = {
+                            ...profile!,
+                            profilePictureUri: pendingImageUri,
+                            updatedAt: Date.now(),
+                          };
+                          await StorageService.saveUserProfile(updatedProfile);
+                          setProfile(updatedProfile);
+                          setImageViewerVisible(false);
+                          setPendingImageUri(null);
+                        } catch (error) {
+                          console.error('Error saving new image:', error);
+                        }
+                      }}
+                    >
+                      <Ionicons name="checkmark" size={20} color="#ffffff" />
+                      <Text style={styles.imageViewerButtonTextUpdate}>Confirm</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  // Normal View Mode Actions
+                  <>
+                    <TouchableOpacity 
+                      style={[styles.imageViewerButton, styles.imageViewerButtonDelete]} 
+                      onPress={() => {
+                        setImageViewerVisible(false);
+                        setTimeout(handleRemoveImage, 350);
+                      }}
+                    >
+                      <Ionicons name="trash-outline" size={20} color={Colors.error} />
+                      <Text style={styles.imageViewerButtonTextDelete}>Delete</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={[styles.imageViewerButton, styles.imageViewerButtonUpdate]} 
+                      onPress={() => {
+                        setImageViewerVisible(false);
+                        setTimeout(handlePickImage, 350);
+                      }}
+                    >
+                      <Ionicons name="camera-outline" size={20} color="#ffffff" />
+                      <Text style={styles.imageViewerButtonTextUpdate}>Update</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            </>
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -532,7 +655,7 @@ export const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.surface,
   },
   loadingContainer: {
     flex: 1,
@@ -541,11 +664,13 @@ const styles = StyleSheet.create({
   },
   header: {
     height: 60,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     backgroundColor: Colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
-    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,
@@ -692,29 +817,32 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
-    paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
     gap: Spacing.md,
-    marginTop: Spacing.md,
+    marginTop: Spacing.lg,
   },
   tab: {
     flex: 1,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
     alignItems: 'center',
-    borderRadius: BorderRadius.medium,
-    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.large,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   activeTab: {
     backgroundColor: `${Colors.primary}15`,
+    borderColor: Colors.primary,
   },
   statsSection: {
+    paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.xl,
   },
   statsCardsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+    justifyContent: 'space-between',
     marginTop: Spacing.md,
   },
   statsLoading: {
@@ -730,7 +858,58 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   recordsContainer: {
-    paddingHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
+  },
+  imageViewerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageViewerClose: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 30,
+    right: 20,
+    zIndex: 10,
+    padding: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '75%',
+  },
+  imageViewerActions: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 50 : 30,
+    flexDirection: 'row',
+    gap: Spacing.lg,
+    width: '100%',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  imageViewerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: BorderRadius.large,
+    gap: Spacing.sm,
+  },
+  imageViewerButtonDelete: {
+    backgroundColor: 'rgba(255, 59, 48, 0.15)',
+  },
+  imageViewerButtonUpdate: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  imageViewerButtonTextDelete: {
+    color: Colors.error,
+    fontSize: 15,
+    fontFamily: 'Poppins_500Medium',
+  },
+  imageViewerButtonTextUpdate: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontFamily: 'Poppins_500Medium',
   },
 });

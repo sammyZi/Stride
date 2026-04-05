@@ -358,11 +358,13 @@ const styles = StyleSheet.create({
   },
   header: {
     height: 60,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
-    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,
