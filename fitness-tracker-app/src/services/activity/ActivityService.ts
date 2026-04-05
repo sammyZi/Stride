@@ -53,7 +53,7 @@ class ActivityService {
 
   /**
    * Start a new activity
-   * @param type - Activity type (walking or running)
+   * @param type - Activity type (always 'activity')
    * @param enableBackground - Enable background location tracking
    * @returns Activity ID
    */

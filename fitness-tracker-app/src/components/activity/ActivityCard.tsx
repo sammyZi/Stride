@@ -23,11 +23,11 @@ const ActivityCardComponent: React.FC<ActivityCardProps> = ({
   units = 'metric',
 }) => {
   const getActivityIcon = () => {
-    return activity.type === 'running' ? 'run' : 'walk';
+    return 'fitness';
   };
 
   const getActivityColor = () => {
-    return activity.type === 'running' ? Colors.running : Colors.walking;
+    return Colors.primary;
   };
 
   return (

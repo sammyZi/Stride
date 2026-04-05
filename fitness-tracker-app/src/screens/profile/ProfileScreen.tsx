@@ -431,7 +431,7 @@ export const ProfileScreen: React.FC = () => {
       {/* Edit Profile Modal */}
       <Modal
         visible={editModalVisible}
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         onRequestClose={() => setEditModalVisible(false)}
       >

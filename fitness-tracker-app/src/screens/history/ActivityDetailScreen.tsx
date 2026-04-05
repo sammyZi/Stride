@@ -180,11 +180,11 @@ export const ActivityDetailScreen: React.FC<any> = ({
   ];
 
   const getActivityIcon = () => {
-    return activity?.type === 'running' ? 'run' : 'walk';
+    return 'fitness';
   };
 
   const getActivityColor = () => {
-    return activity?.type === 'running' ? Colors.running : Colors.walking;
+    return Colors.primary;
   };
 
   // Show error state if activity not found after loading

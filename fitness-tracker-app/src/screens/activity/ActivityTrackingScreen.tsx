@@ -33,7 +33,7 @@ interface ActivityTrackingScreenProps {
 export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ onBack }) => {
   const { modalState, showConfirm, hideModal } = useConfirmModal();
   const { settings } = useSettings();
-  const [activityType, setActivityType] = useState<ActivityType>('walking');
+  const [activityType] = useState<ActivityType>('activity');
   const [isTracking, setIsTracking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -505,63 +505,10 @@ export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ 
       <SafeAreaView style={styles.bottomContainer} edges={['bottom']}>
         {!isTracking ? (
           <View style={styles.startContainer}>
-            {/* Activity Type Selector */}
-            <View style={styles.typeSelector}>
-              <TouchableOpacity
-                style={[
-                  styles.typeButton,
-                  activityType === 'walking' && styles.typeButtonActive,
-                ]}
-                onPress={() => {
-                  HapticFeedbackService.selection();
-                  setActivityType('walking');
-                }}
-              >
-                <Ionicons
-                  name="walk"
-                  size={20}
-                  color={activityType === 'walking' ? '#fff' : Colors.textSecondary}
-                />
-                <Text
-                  style={[
-                    styles.typeButtonText,
-                    activityType === 'walking' && styles.typeButtonTextActive,
-                  ]}
-                >
-                  Walk
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.typeButton,
-                  activityType === 'running' && styles.typeButtonActive,
-                ]}
-                onPress={() => {
-                  HapticFeedbackService.selection();
-                  setActivityType('running');
-                }}
-              >
-                <Ionicons
-                  name="fitness"
-                  size={20}
-                  color={activityType === 'running' ? '#fff' : Colors.textSecondary}
-                />
-                <Text
-                  style={[
-                    styles.typeButtonText,
-                    activityType === 'running' && styles.typeButtonTextActive,
-                  ]}
-                >
-                  Run
-                </Text>
-              </TouchableOpacity>
-            </View>
-
             {/* Start Button */}
             <TouchableOpacity style={styles.startButton} onPress={handleStart}>
-              <Ionicons name="play" size={28} color="#fff" />
-              <Text style={styles.startButtonText}>Start</Text>
+              <Ionicons name="play" size={32} color="#fff" />
+              <Text style={styles.startButtonText}>Start Activity</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -730,43 +677,15 @@ const styles = StyleSheet.create({
   startContainer: {
     alignItems: 'center',
   },
-  typeSelector: {
-    flexDirection: 'row',
-    backgroundColor: Colors.background,
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 16,
-    width: '100%',
-  },
-  typeButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 6,
-  },
-  typeButtonActive: {
-    backgroundColor: Colors.primary,
-  },
-  typeButtonText: {
-    fontSize: 15,
-    fontFamily: 'Poppins_500Medium',
-    color: Colors.textSecondary,
-  },
-  typeButtonTextActive: {
-    color: '#fff',
-  },
   startButton: {
     backgroundColor: Colors.primary,
     width: width - 40,
-    height: 56,
+    height: 64,
     borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 12,
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -775,7 +694,7 @@ const styles = StyleSheet.create({
   },
   startButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: 'Poppins_600SemiBold',
   },
   controlsRow: {

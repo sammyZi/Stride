@@ -119,16 +119,14 @@ export function calculateSpeed(distance: number, duration: number): number {
 /**
  * Calculate estimated calories burned
  * 
- * Uses MET (Metabolic Equivalent of Task) values:
- * - Walking: 3.5 METs (moderate pace)
- * - Running: 9.8 METs (average running pace)
+ * Uses pace-based MET calculation for more accurate results
  * 
  * Formula: Calories = MET × weight(kg) × duration(hours)
  * 
  * @param distance - Distance in meters
  * @param duration - Duration in seconds
  * @param weight - User weight in kg
- * @param activityType - Type of activity (walking or running)
+ * @param activityType - Type of activity (not used, kept for compatibility)
  * @returns Estimated calories burned
  */
 export function calculateCalories(
@@ -137,23 +135,8 @@ export function calculateCalories(
   weight: number,
   activityType: ActivityType
 ): number {
-  if (duration === 0 || weight === 0) {
-    return 0;
-  }
-
-  // MET values for different activities
-  const MET_VALUES = {
-    walking: 3.5,
-    running: 9.8,
-  };
-
-  const met = MET_VALUES[activityType];
-  const durationInHours = duration / 3600;
-  
-  // Calories = MET × weight(kg) × duration(hours)
-  const calories = met * weight * durationInHours;
-
-  return Math.round(calories);
+  // Use pace-based calculation for better accuracy
+  return calculateCaloriesWithPace(distance, duration, weight, activityType);
 }
 
 /**
@@ -163,7 +146,7 @@ export function calculateCalories(
  * @param distance - Distance in meters
  * @param duration - Duration in seconds
  * @param weight - User weight in kg
- * @param activityType - Type of activity (walking or running)
+ * @param activityType - Type of activity (not used, kept for compatibility)
  * @returns Estimated calories burned
  */
 export function calculateCaloriesWithPace(
@@ -180,28 +163,21 @@ export function calculateCaloriesWithPace(
 
   let met: number;
 
-  if (activityType === 'walking') {
-    // Walking MET values based on speed
-    if (speed < 3.2) {
-      met = 2.5; // Slow walking
-    } else if (speed < 4.8) {
-      met = 3.5; // Moderate walking
-    } else if (speed < 6.4) {
-      met = 5.0; // Brisk walking
-    } else {
-      met = 7.0; // Very brisk walking
-    }
+  // Automatically determine activity intensity based on speed
+  if (speed < 3.2) {
+    met = 2.5; // Slow walking
+  } else if (speed < 4.8) {
+    met = 3.5; // Moderate walking
+  } else if (speed < 6.4) {
+    met = 5.0; // Brisk walking
+  } else if (speed < 8) {
+    met = 7.0; // Very brisk walking / light jogging
+  } else if (speed < 10) {
+    met = 9.8; // Running (moderate)
+  } else if (speed < 12) {
+    met = 11.5; // Running (fast)
   } else {
-    // Running MET values based on speed
-    if (speed < 8) {
-      met = 8.0; // Jogging
-    } else if (speed < 10) {
-      met = 9.8; // Running (moderate)
-    } else if (speed < 12) {
-      met = 11.5; // Running (fast)
-    } else {
-      met = 13.5; // Running (very fast)
-    }
+    met = 13.5; // Running (very fast)
   }
 
   const durationInHours = duration / 3600;

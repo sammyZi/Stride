@@ -32,18 +32,15 @@ export const ActivityShareCard: React.FC<ActivityShareCardProps> = ({
     units,
 }) => {
     const getActivityIcon = () => {
-        return activity.type === 'running' ? 'run' : 'walk';
+        return 'fitness';
     };
 
     const getActivityColor = () => {
-        return activity.type === 'running' ? Colors.running : Colors.walking;
+        return Colors.primary;
     };
 
     const getGradientColors = (): [string, string] => {
-        if (activity.type === 'running') {
-            return ['#667eea', '#764ba2'];
-        }
-        return ['#4facfe', '#00f2fe'];
+        return ['#667eea', '#764ba2'];
     };
 
     return (

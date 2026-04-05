@@ -29,11 +29,11 @@ export const ActivitySummaryCard: React.FC<ActivitySummaryCardProps> = ({
   style,
 }) => {
   const getActivityIcon = () => {
-    return activity.type === 'running' ? 'run' : 'walk';
+    return 'fitness';
   };
 
   const getActivityColor = () => {
-    return activity.type === 'running' ? Colors.running : Colors.walking;
+    return Colors.primary;
   };
 
   const activityType = activity.type.charAt(0).toUpperCase() + activity.type.slice(1);

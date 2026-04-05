@@ -2,7 +2,7 @@
  * Core TypeScript type definitions for the Fitness Tracker App
  */
 
-export type ActivityType = 'walking' | 'running';
+export type ActivityType = 'activity';
 export type ActivityStatus = 'active' | 'paused' | 'completed';
 export type SyncStatus = 'synced' | 'pending' | 'failed';
 export type UnitSystem = 'metric' | 'imperial';
