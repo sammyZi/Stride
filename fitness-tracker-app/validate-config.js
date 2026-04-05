@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('🔍 Validating Google OAuth Configuration...\n');
+console.log('🔍 Validating App Configuration...\n');
 
 // Read .env file
 const envPath = path.join(__dirname, '.env');
@@ -26,12 +26,7 @@ envContent.split('\n').forEach(line => {
 
 // Required variables
 const required = [
-  'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID',
-  'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID',
-  'EXPO_PUBLIC_FIREBASE_API_KEY',
-  'EXPO_PUBLIC_FIREBASE_PROJECT_ID',
-  'EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-  'EXPO_PUBLIC_FIREBASE_APP_ID',
+  'EXPO_PUBLIC_GOOGLE_MAPS_API_KEY',
 ];
 
 let hasErrors = false;
@@ -59,43 +54,12 @@ required.forEach(varName => {
   }
 });
 
-console.log('\n📋 Validating values:\n');
-
-// Validate project ID
-const projectId = envVars['EXPO_PUBLIC_FIREBASE_PROJECT_ID'];
-if (projectId && projectId !== 'fitness-tracker-app-485014') {
-  console.log(`⚠️  Project ID should be: fitness-tracker-app-485014`);
-  console.log(`   Current value: ${projectId}`);
-  hasErrors = true;
-} else if (projectId) {
-  console.log(`✅ Project ID: ${projectId}`);
-}
-
-// Validate Client IDs format
-const webClientId = envVars['EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID'];
-const androidClientId = envVars['EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID'];
-
-if (webClientId && !webClientId.endsWith('.apps.googleusercontent.com')) {
-  console.log(`❌ Web Client ID format invalid (should end with .apps.googleusercontent.com)`);
-  hasErrors = true;
-} else if (webClientId) {
-  console.log(`✅ Web Client ID format: OK`);
-}
-
-if (androidClientId && !androidClientId.endsWith('.apps.googleusercontent.com')) {
-  console.log(`❌ Android Client ID format invalid (should end with .apps.googleusercontent.com)`);
-  hasErrors = true;
-} else if (androidClientId) {
-  console.log(`✅ Android Client ID format: OK`);
-}
-
 // Check google-services.json
 console.log('\n📋 Checking google-services.json:\n');
 
 const googleServicesPath = path.join(__dirname, 'google-services.json');
 if (!fs.existsSync(googleServicesPath)) {
-  console.log('❌ google-services.json not found!');
-  hasErrors = true;
+  console.log('⚠️  google-services.json not found (needed for Firebase features)');
 } else {
   try {
     const googleServices = JSON.parse(fs.readFileSync(googleServicesPath, 'utf-8'));
@@ -108,23 +72,9 @@ if (!fs.existsSync(googleServicesPath)) {
     console.log(`   Project Number: ${gsProjectNumber}`);
     console.log(`   Package Name: ${gsPackageName}`);
 
-    // Validate consistency
-    if (gsProjectId !== 'fitness-tracker-app-485014') {
-      console.log(`\n⚠️  google-services.json project ID doesn't match expected: fitness-tracker-app-485014`);
-      hasErrors = true;
-    }
-
+    // Validate package name matches app.json
     if (gsPackageName !== 'com.fittracker.app') {
       console.log(`\n⚠️  google-services.json package name doesn't match: com.fittracker.app`);
-      hasErrors = true;
-    }
-
-    // Check if .env values match google-services.json
-    const envProjectNumber = envVars['EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'];
-    if (envProjectNumber && envProjectNumber !== gsProjectNumber) {
-      console.log(`\n⚠️  EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID doesn't match google-services.json`);
-      console.log(`   .env value: ${envProjectNumber}`);
-      console.log(`   google-services.json value: ${gsProjectNumber}`);
       hasErrors = true;
     }
 
@@ -134,11 +84,52 @@ if (!fs.existsSync(googleServicesPath)) {
   }
 }
 
+// Check app.json
+console.log('\n📋 Checking app.json:\n');
+
+const appJsonPath = path.join(__dirname, 'app.json');
+if (fs.existsSync(appJsonPath)) {
+  try {
+    const appJson = JSON.parse(fs.readFileSync(appJsonPath, 'utf-8'));
+    const expo = appJson.expo;
+
+    console.log(`✅ App name: ${expo.name}`);
+    console.log(`   Version: ${expo.version}`);
+    console.log(`   Package: ${expo.android?.package}`);
+    console.log(`   Bundle ID: ${expo.ios?.bundleIdentifier}`);
+
+    // Check Google Maps API key in config
+    const mapsApiKey = expo.android?.config?.googleMaps?.apiKey;
+    if (!mapsApiKey) {
+      console.log(`\n⚠️  Google Maps API key not found in app.json android.config.googleMaps`);
+    } else {
+      console.log(`✅ Google Maps API key configured in app.json`);
+    }
+
+    // Check assets exist
+    const assetsToCheck = ['icon', 'splash.image'];
+    assetsToCheck.forEach(assetPath => {
+      const value = assetPath.includes('.') 
+        ? assetPath.split('.').reduce((obj, key) => obj?.[key], expo)
+        : expo[assetPath];
+      if (value && fs.existsSync(path.join(__dirname, value))) {
+        console.log(`✅ Asset exists: ${value}`);
+      } else if (value) {
+        console.log(`❌ Asset missing: ${value}`);
+        hasErrors = true;
+      }
+    });
+
+  } catch (error) {
+    console.log(`❌ Error reading app.json: ${error.message}`);
+    hasErrors = true;
+  }
+}
+
 // Final summary
 console.log('\n' + '='.repeat(60));
 if (hasErrors) {
   console.log('❌ Configuration has errors! Please fix the issues above.');
-  console.log('\n📖 See SETUP_GOOGLE_OAUTH.md for detailed instructions.');
   process.exit(1);
 } else {
   console.log('✅ All checks passed! Your configuration looks good.');

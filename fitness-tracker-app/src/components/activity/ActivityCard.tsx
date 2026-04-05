@@ -43,7 +43,7 @@ const ActivityCardComponent: React.FC<ActivityCardProps> = ({
           <View style={styles.header}>
             <View style={styles.typeContainer}>
               <MaterialCommunityIcons
-                name={getActivityIcon()}
+                name={getActivityIcon() as any}
                 size={16}
                 color={getActivityColor()}
               />

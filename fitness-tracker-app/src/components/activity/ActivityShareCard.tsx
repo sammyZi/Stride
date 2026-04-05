@@ -55,7 +55,7 @@ export const ActivityShareCard: React.FC<ActivityShareCardProps> = ({
                 <View style={styles.headerContent}>
                     <View style={styles.activityTypeContainer}>
                         <MaterialCommunityIcons
-                            name={getActivityIcon()}
+                            name={getActivityIcon() as any}
                             size={72}
                             color="#FFFFFF"
                         />
@@ -214,7 +214,7 @@ export const ActivityShareCard: React.FC<ActivityShareCardProps> = ({
                 <View style={styles.brandingContainer}>
                     <Ionicons name="fitness" size={36} color={getActivityColor()} />
                     <Text variant="medium" weight="semiBold" color={Colors.textPrimary} style={{ fontSize: 32 }}>
-                        Fitness Tracker
+                        Stride
                     </Text>
                 </View>
                 <Text variant="small" color={Colors.textSecondary} style={{ fontSize: 24 }}>

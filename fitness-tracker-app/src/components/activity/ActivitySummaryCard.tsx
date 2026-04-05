@@ -44,7 +44,7 @@ export const ActivitySummaryCard: React.FC<ActivitySummaryCardProps> = ({
       <View style={styles.header}>
         <View style={[styles.iconContainer, { backgroundColor: getActivityColor() + '20' }]}>
           <MaterialCommunityIcons
-            name={getActivityIcon()}
+            name={getActivityIcon() as any}
             size={40}
             color={getActivityColor()}
           />
@@ -104,7 +104,7 @@ export const ActivitySummaryCard: React.FC<ActivitySummaryCardProps> = ({
       {/* Footer */}
       <View style={styles.footer}>
         <Text variant="small" color={Colors.textSecondary}>
-          Tracked with Fitness Tracker 💪
+          Tracked with Stride 💪
         </Text>
       </View>
     </View>

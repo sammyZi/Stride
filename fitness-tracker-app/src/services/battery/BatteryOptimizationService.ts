@@ -51,7 +51,7 @@ class BatteryOptimizationService {
         
         // If status is recent (within 1 hour), use it
         if (now - this.lastCheckTime < 60 * 60 * 1000) {
-          return this.cachedStatus;
+          return this.cachedStatus ?? true;
         }
       }
 

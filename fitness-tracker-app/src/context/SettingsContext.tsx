@@ -77,12 +77,9 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const updateSettings = async (newSettings: Partial<UserSettings>) => {
     try {
-      console.log('Updating settings with:', newSettings);
       const updatedSettings = { ...settings, ...newSettings };
-      console.log('New settings object:', updatedSettings);
       await StorageService.saveSettings(updatedSettings);
       setSettings(updatedSettings);
-      console.log('Settings state updated');
       
       // Apply settings to services
       AudioAnnouncementService.updateSettings({
@@ -122,10 +119,8 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const setMapType = async (mapType: MapType) => {
-    console.log('Setting map type to:', mapType);
     await HapticFeedbackService.selection();
     await updateSettings({ mapType });
-    console.log('Map type updated in settings:', mapType);
   };
 
   const setTheme = async (theme: Theme) => {

@@ -47,7 +47,7 @@ class SharingService {
       `👟 Steps: ${activity.steps.toLocaleString()}\n` +
       `🔥 Calories: ${Math.round(activity.calories)}\n` +
       `📅 Date: ${formatDate(activity.startTime, 'long')}\n\n` +
-      `Tracked with Fitness Tracker 💪`;
+      `Tracked with Stride 💪`;
   }
 
   /**
@@ -96,7 +96,7 @@ class SharingService {
     });
 
     return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="Fitness Tracker App"
+<gpx version="1.1" creator="Stride App"
   xmlns="http://www.topografix.com/GPX/1/1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">

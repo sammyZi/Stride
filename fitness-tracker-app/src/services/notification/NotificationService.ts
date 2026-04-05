@@ -167,8 +167,8 @@ class NotificationService {
   ): Promise<void> {
     const now = Date.now();
     
-    // Throttle updates - only update every 5 seconds
-    if (now - this.lastNotificationUpdate < this.NOTIFICATION_UPDATE_INTERVAL) {
+    // Throttle updates - only update every 1 second to match the timer tick
+    if (now - this.lastNotificationUpdate < 1000) {
       return;
     }
     
@@ -217,6 +217,7 @@ class NotificationService {
       const paceStr = formatPace(pace, units);
 
       await Notifications.scheduleNotificationAsync({
+        identifier: 'distance-milestone-notification',
         content: {
           title: 'Distance Milestone',
           body: `${distanceStr} completed at ${paceStr}`,
@@ -319,9 +320,9 @@ class NotificationService {
   ): string {
     const duration = formatDuration(metrics.duration);
     const distance = formatDistance(metrics.distance, units, 2);
-    const pace = formatPace(metrics.currentPace || metrics.averagePace, units);
+    const pace = formatPace(metrics.averagePace, units);
 
-    return `${duration} • ${distance} • ${pace}`;
+    return `${duration} • ${distance} • Avg Pace: ${pace}`;
   }
 
   /**
