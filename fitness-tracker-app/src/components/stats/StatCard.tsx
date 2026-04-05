@@ -40,8 +40,8 @@ export const StatCard: React.FC<StatCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    flex: 1,
-    minWidth: 150,
+    width: '48%',
+    marginBottom: Spacing.md,
   },
   iconContainer: {
     width: 48,

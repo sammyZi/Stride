@@ -128,7 +128,7 @@ export const CreateGoalModal: React.FC<CreateGoalModalProps> = ({
   return (
     <Modal
       visible={visible}
-      animationType="slide"
+      animationType="fade"
       transparent={true}
       onRequestClose={onClose}
     >
@@ -136,7 +136,12 @@ export const CreateGoalModal: React.FC<CreateGoalModalProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.modalContainer}
       >
-        <View style={styles.modalContent}>
+        <TouchableOpacity 
+          style={StyleSheet.absoluteFill} 
+          activeOpacity={1} 
+          onPress={onClose} 
+        />
+        <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
           <View style={styles.modalHeader}>
             <Text variant="large" weight="bold" color={Colors.textPrimary}>
               Create New Goal

@@ -161,11 +161,6 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
       icon="fitness-outline"
       title="No Activities Yet"
       message="Start tracking your walks and runs to see them here!"
-      actionText="Start Activity"
-      onAction={() => {
-        // TODO: Navigate to activity tracking screen
-        console.log('Navigate to activity tracking');
-      }}
     />
   );
 
@@ -285,7 +280,7 @@ export const ActivityHistoryScreen = React.memo(ActivityHistoryScreenComponent);
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.surface,
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 44,
   },
   statusBarSpacer: {
@@ -304,8 +299,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.background,
-    marginBottom: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
   filterButton: {
     width: 44,
@@ -367,7 +363,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.medium,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -384,7 +380,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Spacing.lg,
     borderRadius: BorderRadius.medium,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
