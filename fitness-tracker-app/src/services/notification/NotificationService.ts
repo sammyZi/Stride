@@ -105,7 +105,7 @@ class NotificationService {
    */
   async showActivityNotification(
     metrics: ActivityMetrics,
-    activityType: 'walking' | 'running',
+    activityType: 'activity',
     units: UnitSystem = 'metric',
     isPaused: boolean = false
   ): Promise<void> {
@@ -119,8 +119,8 @@ class NotificationService {
 
     try {
       const title = isPaused 
-        ? `${activityType === 'walking' ? 'Walk' : 'Run'} Paused`
-        : `${activityType === 'walking' ? 'Walking' : 'Running'} in Progress`;
+        ? 'Activity Paused'
+        : 'Activity in Progress';
 
       const body = this.formatMetricsForNotification(metrics, units);
 
@@ -161,7 +161,7 @@ class NotificationService {
    */
   async updateActivityNotification(
     metrics: ActivityMetrics,
-    activityType: 'walking' | 'running',
+    activityType: 'activity',
     units: UnitSystem = 'metric',
     isPaused: boolean = false
   ): Promise<void> {
@@ -276,7 +276,7 @@ class NotificationService {
    */
   async showActivityCompletion(
     metrics: ActivityMetrics,
-    activityType: 'walking' | 'running',
+    activityType: 'activity',
     units: UnitSystem = 'metric'
   ): Promise<void> {
     if (!this.hasPermission) {
@@ -290,7 +290,7 @@ class NotificationService {
 
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: `${activityType === 'walking' ? 'Walk' : 'Run'} Complete!`,
+          title: 'Activity Complete!',
           body: `${distance} in ${duration} at ${pace}`,
           data: {
             type: 'activity-completion',

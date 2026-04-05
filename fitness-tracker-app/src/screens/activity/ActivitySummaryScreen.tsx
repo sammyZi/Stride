@@ -77,8 +77,8 @@ export const ActivitySummaryScreen: React.FC<ActivitySummaryScreenProps> = ({
     );
   };
 
-  const activityTypeIcon = activity.type === 'running' ? 'fitness' : 'walk';
-  const activityTypeColor = activity.type === 'running' ? Colors.running : Colors.walking;
+  const activityTypeIcon = 'fitness';
+  const activityTypeColor = Colors.primary;
 
   return (
     <View style={styles.container}>

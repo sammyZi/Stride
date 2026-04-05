@@ -89,7 +89,7 @@ export function formatPace(
   secondsPerKm: number,
   units: UnitSystem = 'metric'
 ): string {
-  if (secondsPerKm === 0 || !isFinite(secondsPerKm)) {
+  if (secondsPerKm <= 0 || !isFinite(secondsPerKm) || secondsPerKm > 3600) {
     return units === 'metric' ? '--:-- /km' : '--:-- /mi';
   }
 
@@ -117,7 +117,7 @@ export function formatPaceValue(
   secondsPerKm: number,
   units: UnitSystem = 'metric'
 ): string {
-  if (secondsPerKm === 0 || !isFinite(secondsPerKm)) {
+  if (secondsPerKm <= 0 || !isFinite(secondsPerKm) || secondsPerKm > 3600) {
     return '--:--';
   }
 

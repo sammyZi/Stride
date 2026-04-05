@@ -15,16 +15,10 @@
 import * as TaskManager from 'expo-task-manager';
 import * as ExpoLocation from 'expo-location';
 import { Location } from '@/types';
+import { GPS_CONFIG, BACKGROUND_TRACKING_CONFIG } from '@/config/tracking';
 
 // Task name constant
 export const BACKGROUND_LOCATION_TASK = 'background-location-task';
-
-// Configuration constants
-const ACCURACY_THRESHOLD = 20; // meters - accept good GPS points (realistic threshold)
-const STATIONARY_SPEED_THRESHOLD = 0.5; // m/s
-const MIN_DISTANCE_BETWEEN_POINTS = 5; // meters - capture route details
-const KALMAN_Q = 3; // Process noise - balanced for GPS smoothing
-const KALMAN_R = 10; // Measurement noise - balanced for typical GPS
 
 // Kalman filter state (persisted across task executions)
 interface KalmanState {
@@ -128,23 +122,23 @@ export async function startBackgroundLocationTracking(): Promise<void> {
       // Use best available accuracy for navigation
       accuracy: ExpoLocation.Accuracy.BestForNavigation,
       
-      // Optimal intervals for detailed tracking
-      timeInterval: 3000,  // 3 seconds - frequent updates
-      distanceInterval: 5,  // 5 meters - capture route details
+      // Optimal intervals for detailed tracking (from centralized config)
+      timeInterval: GPS_CONFIG.TIME_INTERVAL,
+      distanceInterval: GPS_CONFIG.DISTANCE_INTERVAL,
       
       // Enable for continuous tracking
-      showsBackgroundLocationIndicator: true,
+      showsBackgroundLocationIndicator: BACKGROUND_TRACKING_CONFIG.SHOW_BACKGROUND_INDICATOR,
       
       // Foreground service for Android with location type
       foregroundService: {
-        notificationTitle: 'Activity Tracking',
-        notificationBody: 'Tracking your activity with high accuracy...',
-        notificationColor: '#6C63FF',
+        notificationTitle: BACKGROUND_TRACKING_CONFIG.NOTIFICATION_TITLE,
+        notificationBody: BACKGROUND_TRACKING_CONFIG.NOTIFICATION_BODY,
+        notificationColor: BACKGROUND_TRACKING_CONFIG.NOTIFICATION_COLOR,
       },
       
       // Additional accuracy settings
-      deferredUpdatesInterval: 3000,
-      deferredUpdatesDistance: 5,
+      deferredUpdatesInterval: BACKGROUND_TRACKING_CONFIG.DEFERRED_UPDATES_INTERVAL,
+      deferredUpdatesDistance: BACKGROUND_TRACKING_CONFIG.DEFERRED_UPDATES_DISTANCE,
     });
 
     console.log('Background location tracking started');
@@ -205,7 +199,7 @@ function convertExpoLocation(expoLocation: ExpoLocation.LocationObject): Locatio
  * Check if location accuracy is acceptable
  */
 function isAccurate(location: Location): boolean {
-  return location.accuracy <= ACCURACY_THRESHOLD;
+  return location.accuracy <= GPS_CONFIG.ACCURACY_THRESHOLD;
 }
 
 /**
@@ -213,7 +207,7 @@ function isAccurate(location: Location): boolean {
  */
 function isStationary(location: Location): boolean {
   // If speed is available and below threshold, consider stationary
-  if (location.speed !== null && location.speed < STATIONARY_SPEED_THRESHOLD) {
+  if (location.speed !== null && location.speed < GPS_CONFIG.STATIONARY_SPEED_THRESHOLD) {
     return true;
   }
 
@@ -229,7 +223,7 @@ function isStationary(location: Location): boolean {
     const timeDiff = (location.timestamp - lastLocation.timestamp) / 1000; // seconds
     const speed = distance / timeDiff;
     
-    return speed < STATIONARY_SPEED_THRESHOLD;
+    return speed < GPS_CONFIG.STATIONARY_SPEED_THRESHOLD;
   }
 
   return false;
@@ -246,7 +240,7 @@ function hasMovedEnough(current: Location, last: Location): boolean {
     current.longitude
   );
   
-  return distance >= MIN_DISTANCE_BETWEEN_POINTS;
+  return distance >= GPS_CONFIG.MIN_DISTANCE_BETWEEN_POINTS;
 }
 
 /**
@@ -264,11 +258,11 @@ function applyKalmanFilter(measurement: Location): Location {
   }
 
   // Prediction step
-  const predictedVariance = kalmanState.variance + KALMAN_Q;
+  const predictedVariance = kalmanState.variance + GPS_CONFIG.KALMAN_Q;
 
   // Update step
   const measurementVariance = measurement.accuracy * measurement.accuracy;
-  const kalmanGain = predictedVariance / (predictedVariance + measurementVariance + KALMAN_R);
+  const kalmanGain = predictedVariance / (predictedVariance + measurementVariance + GPS_CONFIG.KALMAN_R);
 
   // Update state
   const newLatitude = kalmanState.latitude + kalmanGain * (measurement.latitude - kalmanState.latitude);

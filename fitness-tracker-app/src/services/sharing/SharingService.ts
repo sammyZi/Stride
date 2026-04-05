@@ -37,10 +37,10 @@ class SharingService {
    * Generate shareable text for an activity
    */
   private generateActivityText(activity: Activity, units: UnitSystem): string {
-    const activityType = activity.type.charAt(0).toUpperCase() + activity.type.slice(1);
-    const emoji = activity.type === 'running' ? '🏃' : '🚶';
+    const activityType = 'Activity';
+    const emoji = '🏃';
 
-    return `${emoji} ${activityType} Activity\n\n` +
+    return `${emoji} ${activityType}\n\n` +
       `📏 Distance: ${formatDistance(activity.distance, units)}\n` +
       `⏱️ Duration: ${formatDuration(activity.duration)}\n` +
       `⚡ Pace: ${formatPace(activity.averagePace, units)}\n` +
@@ -81,7 +81,7 @@ class SharingService {
    * Generate GPX XML content from activity
    */
   private generateGPX(activity: Activity): string {
-    const activityType = activity.type === 'running' ? 'running' : 'walking';
+    const activityType = 'activity';
     const startDate = new Date(activity.startTime).toISOString();
     
     let trackPoints = '';

@@ -13,6 +13,7 @@
 
 import * as ExpoLocation from 'expo-location';
 import { Location, AccuracyStatus, AccuracyQuality } from '@/types';
+import { GPS_CONFIG } from '@/config/tracking';
 import {
   startBackgroundLocationTracking,
   stopBackgroundLocationTracking,
@@ -39,13 +40,6 @@ class LocationService {
   private lastLocation: Location | null = null;
   private kalmanState: KalmanState | null = null;
   private useBackgroundTracking: boolean = false;
-  
-  // Configuration constants - Balanced accuracy mode
-  private readonly ACCURACY_THRESHOLD = 20; // meters - accept good GPS points
-  private readonly STATIONARY_SPEED_THRESHOLD = 0.5; // m/s
-  private readonly KALMAN_Q = 3; // Process noise - balanced for GPS smoothing
-  private readonly KALMAN_R = 10; // Measurement noise - balanced for typical GPS
-  private readonly MIN_DISTANCE_BETWEEN_POINTS = 5; // meters - capture route details
 
   /**
    * Request foreground location permissions from the user
@@ -143,6 +137,13 @@ class LocationService {
       if (!hasBackgroundPermission) {
         throw new Error('Background location permissions not granted. Please enable "Always" location access in settings.');
       }
+
+      // Check battery optimization before starting background tracking
+      const batteryExempted = await batteryOptimizationService.checkBeforeTracking();
+      if (!batteryExempted) {
+        console.warn('Battery optimization is enabled, tracking may be interrupted');
+        // Continue anyway, but user has been warned
+      }
     }
 
     try {
@@ -173,8 +174,8 @@ class LocationService {
     this.locationSubscription = await ExpoLocation.watchPositionAsync(
       {
         accuracy: ExpoLocation.Accuracy.BestForNavigation,
-        timeInterval: 3000, // 3 seconds
-        distanceInterval: 5, // 5 meters
+        timeInterval: GPS_CONFIG.TIME_INTERVAL,
+        distanceInterval: GPS_CONFIG.DISTANCE_INTERVAL,
       },
       (expoLocation) => {
         this.handleLocationUpdate(expoLocation);
@@ -438,7 +439,7 @@ class LocationService {
    * Check if location accuracy is acceptable
    */
   private isAccurate(location: Location): boolean {
-    return location.accuracy <= this.ACCURACY_THRESHOLD;
+    return location.accuracy <= GPS_CONFIG.ACCURACY_THRESHOLD;
   }
 
   /**
@@ -446,7 +447,7 @@ class LocationService {
    */
   private isStationary(location: Location): boolean {
     // If speed is available and below threshold, consider stationary
-    if (location.speed !== null && location.speed < this.STATIONARY_SPEED_THRESHOLD) {
+    if (location.speed !== null && location.speed < GPS_CONFIG.STATIONARY_SPEED_THRESHOLD) {
       return true;
     }
 
@@ -462,7 +463,7 @@ class LocationService {
       const timeDiff = (location.timestamp - this.lastLocation.timestamp) / 1000; // seconds
       const speed = distance / timeDiff;
       
-      return speed < this.STATIONARY_SPEED_THRESHOLD;
+      return speed < GPS_CONFIG.STATIONARY_SPEED_THRESHOLD;
     }
 
     return false;
@@ -479,7 +480,7 @@ class LocationService {
       current.longitude
     );
     
-    return distance >= this.MIN_DISTANCE_BETWEEN_POINTS;
+    return distance >= GPS_CONFIG.MIN_DISTANCE_BETWEEN_POINTS;
   }
 
   /**
@@ -498,11 +499,11 @@ class LocationService {
     }
 
     // Prediction step (assume no movement prediction, just use last state)
-    const predictedVariance = this.kalmanState.variance + this.KALMAN_Q;
+    const predictedVariance = this.kalmanState.variance + GPS_CONFIG.KALMAN_Q;
 
     // Update step
     const measurementVariance = measurement.accuracy * measurement.accuracy;
-    const kalmanGain = predictedVariance / (predictedVariance + measurementVariance + this.KALMAN_R);
+    const kalmanGain = predictedVariance / (predictedVariance + measurementVariance + GPS_CONFIG.KALMAN_R);
 
     // Update state
     const newLatitude = this.kalmanState.latitude + kalmanGain * (measurement.latitude - this.kalmanState.latitude);

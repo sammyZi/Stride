@@ -151,16 +151,16 @@ class AudioAnnouncementService {
   /**
    * Announce activity start
    * 
-   * @param activityType - Type of activity (walking/running)
+   * @param activityType - Type of activity (not used, kept for compatibility)
    */
-  async announceStart(activityType: 'walking' | 'running'): Promise<void> {
+  async announceStart(activityType: 'activity'): Promise<void> {
     if (!this.options.enabled || this.isSpeaking) {
       return;
     }
 
     try {
       this.isSpeaking = true;
-      const announcement = `${activityType === 'walking' ? 'Walk' : 'Run'} started`;
+      const announcement = 'Activity started';
       
       await Speech.speak(announcement, {
         language: 'en-US',

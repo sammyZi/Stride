@@ -187,33 +187,6 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
             </TouchableOpacity>
           </View>
 
-          {/* Activity Type Filter */}
-          <View style={styles.filterSection}>
-            <Text variant="regular" weight="medium" style={styles.filterLabel}>
-              Activity Type
-            </Text>
-            <View style={styles.filterOptions}>
-              {(['all', 'walking', 'running'] as const).map((type) => (
-                <TouchableOpacity
-                  key={type}
-                  style={[
-                    styles.filterOption,
-                    activityTypeFilter === type && styles.filterOptionActive,
-                  ]}
-                  onPress={() => setActivityTypeFilter(type)}
-                >
-                  <Text
-                    variant="regular"
-                    weight={activityTypeFilter === type ? 'semiBold' : 'regular'}
-                    color={activityTypeFilter === type ? Colors.surface : Colors.textPrimary}
-                  >
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
           {/* Date Range Filter */}
           <View style={styles.filterSection}>
             <Text variant="regular" weight="medium" style={styles.filterLabel}>
