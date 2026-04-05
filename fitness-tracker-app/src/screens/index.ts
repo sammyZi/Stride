@@ -3,9 +3,6 @@
  * Export all screen components from this file
  */
 
-// Auth screens
-export { SignInScreen } from './auth';
-
 // Activity screens
 export { ActivityTrackingScreen } from './activity/ActivityTrackingScreen';
 

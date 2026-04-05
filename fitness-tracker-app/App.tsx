@@ -6,9 +6,8 @@ import { ActivityIndicator } from 'react-native';
 import { useFonts, useTheme, usePermissions } from './src/hooks';
 import { Text } from './src/components';
 import { AppNavigator } from './src/navigation';
-import { SettingsProvider, AuthProvider, useAuth } from './src/context';
+import { SettingsProvider } from './src/context';
 import { PermissionsScreen } from './src/screens/onboarding/PermissionsScreen';
-import { SignInScreen } from './src/screens';
 import storageService from './src/services/storage/StorageService';
 import { configurePerformance } from './src/utils/performance';
 
@@ -19,7 +18,6 @@ configurePerformance();
 function AppContent() {
   const { fontsLoaded, error } = useFonts();
   const { colors, isDark } = useTheme();
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const {
     hasRequestedPermissions,
     hasLocationPermission,
@@ -45,12 +43,12 @@ function AppContent() {
   }, []);
 
   React.useEffect(() => {
-    if (!permissionsLoading && !hasRequestedPermissions && isAuthenticated) {
+    if (!permissionsLoading && !hasRequestedPermissions) {
       setShowPermissions(true);
     }
-  }, [permissionsLoading, hasRequestedPermissions, isAuthenticated]);
+  }, [permissionsLoading, hasRequestedPermissions]);
 
-  if (!fontsLoaded || permissionsLoading || !storageInitialized || authLoading) {
+  if (!fontsLoaded || permissionsLoading || !storageInitialized) {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -65,23 +63,6 @@ function AppContent() {
           Error loading fonts
         </Text>
       </SafeAreaView>
-    );
-  }
-
-  // Show sign-in screen if not authenticated
-  if (!isAuthenticated) {
-    return (
-      <>
-        <StatusBar style={isDark ? 'light' : 'dark'} />
-        <SignInScreen
-          onSignInSuccess={(isNewUser) => {
-            // If new user, show permissions screen
-            if (isNewUser) {
-              setShowPermissions(true);
-            }
-          }}
-        />
-      </>
     );
   }
 
@@ -111,9 +92,7 @@ function AppContent() {
 export default function App() {
   return (
     <SettingsProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <AppContent />
     </SettingsProvider>
   );
 }

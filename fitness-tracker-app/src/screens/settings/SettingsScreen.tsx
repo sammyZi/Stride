@@ -23,7 +23,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../../components/common';
 import { Colors, Spacing } from '../../constants/theme';
 import { useSettings } from '../../context';
-import { useAuth } from '../../context';
 import { useTheme } from '../../hooks';
 import { UnitSystem } from '../../types';
 
@@ -47,32 +46,6 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
     isHapticEnabled,
   } = useSettings();
   const { colors } = useTheme();
-  const { signOut, user } = useAuth();
-
-  const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut();
-            } catch (error) {
-              console.error('Sign-out error:', error);
-              Alert.alert('Error', 'Failed to sign out. Please try again.');
-            }
-          },
-        },
-      ]
-    );
-  };
 
   const getIntervalLabel = (interval: number, units: UnitSystem): string => {
     const intervalOption = ANNOUNCEMENT_INTERVALS.find(i => i.value === interval);
@@ -362,42 +335,6 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             without looking at your phone. Haptic feedback provides tactile confirmation
             for your actions.
           </Text>
-        </View>
-
-        {/* Account Section */}
-        <View style={[styles.section, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Account</Text>
-          
-          {user && (
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Ionicons name="person-circle-outline" size={24} color={Colors.primary} />
-                <View style={styles.settingTextContainer}>
-                  <Text style={styles.settingLabel}>Signed in as</Text>
-                  <Text style={styles.settingDescription}>
-                    {user.email}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          <TouchableOpacity
-            style={styles.settingRow}
-            onPress={handleSignOut}
-            activeOpacity={0.7}
-          >
-            <View style={styles.settingInfo}>
-              <Ionicons name="log-out-outline" size={24} color={Colors.error} />
-              <View style={styles.settingTextContainer}>
-                <Text style={[styles.settingLabel, { color: Colors.error }]}>Sign Out</Text>
-                <Text style={styles.settingDescription}>
-                  Sign out of your account
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={Colors.textSecondary} />
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
