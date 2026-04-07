@@ -233,7 +233,7 @@ export const BackgroundTrackingGuideScreen: React.FC<{ navigation: any }> = ({ n
               <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} style={styles.pathArrow} />
               <View style={styles.pathStep}>
                 <Ionicons name="fitness-outline" size={18} color={Colors.primary} />
-                <Text style={styles.pathText}>Fitness Tracker</Text>
+                <Text style={styles.pathText}>Stride</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} style={styles.pathArrow} />
               <View style={styles.pathStep}>
@@ -271,7 +271,7 @@ export const BackgroundTrackingGuideScreen: React.FC<{ navigation: any }> = ({ n
               <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} style={styles.pathArrow} />
               <View style={styles.pathStep}>
                 <Ionicons name="fitness-outline" size={18} color={Colors.primary} />
-                <Text style={styles.pathText}>Fitness Tracker</Text>
+                <Text style={styles.pathText}>Stride</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} style={styles.pathArrow} />
               <View style={styles.pathStep}>
@@ -350,7 +350,7 @@ export const BackgroundTrackingGuideScreen: React.FC<{ navigation: any }> = ({ n
             manufacturer="Samsung"
             icon="phone-portrait"
             steps={[
-              'Settings → Apps → Fitness Tracker → Battery → Set to "Unrestricted"',
+              'Settings → Apps → Stride → Battery → Set to "Unrestricted"',
               'Settings → Device care → Battery → Background usage limits',
               'Remove app from "Sleeping apps" and "Deep sleeping apps"',
             ]}
@@ -360,7 +360,7 @@ export const BackgroundTrackingGuideScreen: React.FC<{ navigation: any }> = ({ n
             manufacturer="Xiaomi / MIUI"
             icon="phone-portrait"
             steps={[
-              'Settings → Apps → Manage apps → Fitness Tracker',
+              'Settings → Apps → Manage apps → Stride',
               'Autostart: Enable',
               'Battery saver: No restrictions',
               'Settings → Battery & performance → App battery saver',
@@ -372,7 +372,7 @@ export const BackgroundTrackingGuideScreen: React.FC<{ navigation: any }> = ({ n
             manufacturer="Huawei"
             icon="phone-portrait"
             steps={[
-              'Settings → Apps → Apps → Fitness Tracker',
+              'Settings → Apps → Apps → Stride',
               'Battery → App launch: Manual, enable all three options',
               'Settings → Battery → App launch',
               'Find app and disable "Manage automatically"',
@@ -385,7 +385,7 @@ export const BackgroundTrackingGuideScreen: React.FC<{ navigation: any }> = ({ n
             steps={[
               'Settings → Battery → Battery optimization',
               'Find app and select "Don\'t optimize"',
-              'Settings → Apps → Fitness Tracker → Battery',
+              'Settings → Apps → Stride → Battery',
               'Enable "Allow background activity"',
             ]}
           />

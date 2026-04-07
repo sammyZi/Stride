@@ -15,8 +15,8 @@ export { default as HapticFeedbackService } from './haptic';
 export { default as PersonalRecordsService } from './personalRecords';
 export { default as SharingService } from './sharing/SharingService';
 export { default as BatteryOptimizationService } from './battery/BatteryOptimizationService';
-export { profileService } from './profile';
-export type { UserProfile, ProfileUpdateData, ProfileCreateData } from './profile';
+// Profile service - uses StorageService directly (no separate profile service needed)
+// Profile types are exported from '@/types' instead
 
 // Services will be exported here as they are created
 // export { FirebaseService } from './firebase/FirebaseService';

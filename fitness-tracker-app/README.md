@@ -1,4 +1,4 @@
-# Fitness Tracker App
+# Stride - Walk & Run GPS Tracker
 
 A React Native mobile application built with Expo for tracking walking and running activities with comprehensive metrics, route mapping, and analytics.
 

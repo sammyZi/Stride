@@ -24,6 +24,7 @@ import {
   RoutePoint,
   Location,
 } from '@/types';
+import { calculateDistance, calculateCaloriesWithPace } from '@/utils/calculations';
 import locationService from '../location/LocationService';
 import storageService from '../storage/StorageService';
 import stepCounterService from '../stepCounter/StepCounterService';
@@ -764,35 +765,8 @@ class ActivityService {
       console.log('Could not fetch user weight, using default:', error);
     }
 
-    // Calculate speed in km/h
-    const distanceKm = distance / 1000;
-    const durationHours = duration / 3600;
-    const speed = distanceKm / durationHours;
-
-    // MET values based on speed (activity type is always 'activity')
-    let met: number;
-
-    // Determine activity intensity from speed
-    if (speed < 3.2) {
-      met = 2.5; // Slow walking
-    } else if (speed < 4.8) {
-      met = 3.5; // Moderate walking
-    } else if (speed < 6.4) {
-      met = 5.0; // Brisk walking
-    } else if (speed < 8) {
-      met = 7.0; // Very brisk walking / light jogging
-    } else if (speed < 10) {
-      met = 9.8; // Running (moderate)
-    } else if (speed < 12) {
-      met = 11.5; // Running (fast)
-    } else {
-      met = 13.5; // Running (very fast)
-    }
-
-    // Calories = MET * weight(kg) * duration(hours)
-    const calories = met * weight * durationHours;
-
-    return Math.round(calories);
+    // Delegate to shared utility
+    return calculateCaloriesWithPace(distance, duration, weight, this.currentActivity.type);
   }
 
   /**
@@ -824,22 +798,11 @@ class ActivityService {
   }
 
   /**
-   * Calculate distance between two coordinates using Haversine formula
+   * Calculate distance between two coordinates (delegates to shared utility)
    * @returns Distance in meters
    */
   private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371e3; // Earth's radius in meters
-    const φ1 = (lat1 * Math.PI) / 180;
-    const φ2 = (lat2 * Math.PI) / 180;
-    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-    const a =
-      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c; // Distance in meters
+    return calculateDistance(lat1, lon1, lat2, lon2);
   }
 }
 

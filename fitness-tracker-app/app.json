@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "FitTracker",
+    "name": "Stride",
     "slug": "fittracker-app",
     "scheme": "fittracker-app",
     "version": "1.0.0",
@@ -39,7 +39,9 @@
         "REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
       ],
       "config": {
-        "googleMaps": {}
+        "googleMaps": {
+          "apiKey": "AIzaSyDRGlLMrnozojGfUN4XmizydenbY2R0hS0"
+        }
       },
       "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
@@ -52,7 +54,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Fitness Tracker to use your location to track activities."
+          "locationAlwaysAndWhenInUsePermission": "Allow Stride to use your location to track your walks and runs."
         }
       ],
       [
@@ -61,9 +63,6 @@
           "icon": "./assets/notification-icon.png",
           "color": "#ffffff"
         }
-      ],
-      [
-        "@react-native-google-signin/google-signin"
       ]
     ]
   }

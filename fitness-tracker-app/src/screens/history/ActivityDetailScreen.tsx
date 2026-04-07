@@ -251,7 +251,7 @@ export const ActivityDetailScreen: React.FC<any> = ({
               <View style={styles.typeContainer}>
                 <View style={[styles.typeIcon, { backgroundColor: getActivityColor() + '20' }]}>
                   <MaterialCommunityIcons
-                    name={getActivityIcon()}
+                    name={getActivityIcon() as any}
                     size={32}
                     color={getActivityColor()}
                   />
@@ -516,7 +516,7 @@ export const ActivityDetailScreen: React.FC<any> = ({
             <View style={styles.brandingFooter}>
               <Ionicons name="fitness" size={20} color={Colors.primary} />
               <Text variant="small" color={Colors.textSecondary} style={styles.brandingText}>
-                Tracked with Fitness Tracker
+                Tracked with Stride
               </Text>
             </View>
           </View>

@@ -207,7 +207,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({ onComplete
             <Ionicons name="shield-checkmark" size={64} color={Colors.primary} />
           </View>
           <Text variant="extraLarge" weight="bold" color={Colors.textPrimary} align="center">
-            Welcome to Fitness Tracker
+            Welcome to Stride
           </Text>
           <Text variant="regular" color={Colors.textSecondary} align="center" style={styles.subtitle}>
             To provide accurate activity tracking, we need a few permissions. Your data stays private and secure on your device.
