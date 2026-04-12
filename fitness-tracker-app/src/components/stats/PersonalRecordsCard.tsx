@@ -79,7 +79,7 @@ export const PersonalRecordsCard: React.FC<PersonalRecordsCardProps> = ({
 
   if (!hasRecords) {
     return (
-      <Card>
+      <Card variant="outlined">
         <View style={styles.header}>
           <View style={styles.headerIconContainer}>
             <Ionicons name="trophy" size={24} color={Colors.warning} />
@@ -104,7 +104,7 @@ export const PersonalRecordsCard: React.FC<PersonalRecordsCardProps> = ({
   }
 
   return (
-    <Card>
+    <Card variant="outlined">
       <View style={styles.header}>
         <View style={styles.headerIconContainer}>
           <Ionicons name="trophy" size={24} color={Colors.warning} />
