@@ -25,10 +25,11 @@ import { Goal } from '../../types';
 import { Colors, Spacing, BorderRadius } from '../../constants/theme';
 
 export const GoalsScreen: React.FC = () => {
-  const { activeGoals, achievedGoals, loading, createGoal, deleteGoal, refresh } = useGoals();
+  const { activeGoals, achievedGoals, loading, createGoal, updateGoal, deleteGoal, refresh } = useGoals();
   const { settings } = useSettings();
   const { modalState, showConfirm, hideModal } = useConfirmModal();
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
 
   const handleCreateGoal = async (
@@ -55,12 +56,49 @@ export const GoalsScreen: React.FC = () => {
     }
   };
 
+  const handleEditGoal = async (
+    type: 'distance' | 'frequency' | 'duration',
+    target: number,
+    period: 'weekly' | 'monthly'
+  ) => {
+    if (!selectedGoal) return;
+    try {
+      await updateGoal(selectedGoal.id, { type, target, period });
+      setEditModalVisible(false);
+      setSelectedGoal(null);
+      showConfirm(
+        'Success',
+        'Goal updated successfully!',
+        [{ text: 'OK', onPress: hideModal, style: 'default' }],
+        { icon: 'checkmark-circle', iconColor: Colors.success }
+      );
+    } catch (error) {
+      console.error('Error updating goal:', error);
+      showConfirm(
+        'Error',
+        'Failed to update goal',
+        [{ text: 'OK', onPress: hideModal, style: 'default' }],
+        { icon: 'alert-circle', iconColor: Colors.error }
+      );
+    }
+  };
+
   const handleGoalPress = (goal: Goal) => {
     setSelectedGoal(goal);
     showConfirm(
       'Goal Options',
       'What would you like to do with this goal?',
       [
+        {
+          text: 'Edit',
+          onPress: () => {
+            hideModal();
+            setTimeout(() => {
+              setEditModalVisible(true);
+            }, 300);
+          },
+          style: 'default',
+        },
         {
           text: 'Delete',
           onPress: () => {
@@ -293,6 +331,31 @@ export const GoalsScreen: React.FC = () => {
         onCreate={handleCreateGoal}
         units={settings.units}
       />
+
+      {/* Edit Goal Modal */}
+      {selectedGoal && (
+        <CreateGoalModal
+          visible={editModalVisible}
+          onClose={() => {
+            setEditModalVisible(false);
+            setSelectedGoal(null);
+          }}
+          onCreate={handleEditGoal}
+          units={settings.units}
+          title="Edit Goal"
+          initialType={selectedGoal.type}
+          initialPeriod={selectedGoal.period}
+          initialTarget={
+            selectedGoal.type === 'distance'
+              ? (settings.units === 'imperial'
+                ? (selectedGoal.target / 1609.34).toFixed(1)
+                : (selectedGoal.target / 1000).toFixed(1))
+              : selectedGoal.type === 'duration'
+                ? (selectedGoal.target / 60).toFixed(0)
+                : selectedGoal.target.toString()
+          }
+        />
+      )}
 
       <ConfirmModal
         visible={modalState.visible}

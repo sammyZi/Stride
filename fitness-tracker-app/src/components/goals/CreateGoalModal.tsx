@@ -26,6 +26,10 @@ interface CreateGoalModalProps {
   onClose: () => void;
   onCreate: (type: GoalType, target: number, period: GoalPeriod) => Promise<void>;
   units: 'metric' | 'imperial';
+  title?: string;
+  initialType?: GoalType;
+  initialTarget?: string;
+  initialPeriod?: GoalPeriod;
 }
 
 type GoalTypeOption = {
@@ -41,12 +45,25 @@ export const CreateGoalModal: React.FC<CreateGoalModalProps> = ({
   onClose,
   onCreate,
   units,
+  title = 'Create New Goal',
+  initialType,
+  initialTarget,
+  initialPeriod,
 }) => {
   const { modalState, showConfirm, hideModal } = useConfirmModal();
-  const [selectedType, setSelectedType] = useState<GoalType>('distance');
-  const [selectedPeriod, setSelectedPeriod] = useState<GoalPeriod>('weekly');
-  const [targetValue, setTargetValue] = useState('');
+  const [selectedType, setSelectedType] = useState<GoalType>(initialType || 'distance');
+  const [selectedPeriod, setSelectedPeriod] = useState<GoalPeriod>(initialPeriod || 'weekly');
+  const [targetValue, setTargetValue] = useState(initialTarget || '');
   const [creating, setCreating] = useState(false);
+
+  // Sync initial values when modal opens
+  React.useEffect(() => {
+    if (visible) {
+      if (initialType) setSelectedType(initialType);
+      if (initialPeriod) setSelectedPeriod(initialPeriod);
+      if (initialTarget) setTargetValue(initialTarget);
+    }
+  }, [visible, initialType, initialPeriod, initialTarget]);
 
   const goalTypes: GoalTypeOption[] = [
     {
@@ -133,7 +150,7 @@ export const CreateGoalModal: React.FC<CreateGoalModalProps> = ({
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.modalContainer}
       >
         <TouchableOpacity 
@@ -144,7 +161,7 @@ export const CreateGoalModal: React.FC<CreateGoalModalProps> = ({
         <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
           <View style={styles.modalHeader}>
             <Text variant="large" weight="bold" color={Colors.textPrimary}>
-              Create New Goal
+              {title}
             </Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color={Colors.textSecondary} />
@@ -250,7 +267,7 @@ export const CreateGoalModal: React.FC<CreateGoalModalProps> = ({
               disabled={creating}
             />
             <Button
-              title={creating ? 'Creating...' : 'Create Goal'}
+              title={creating ? 'Saving...' : (initialType ? 'Save' : 'Create Goal')}
               variant="primary"
               onPress={handleCreate}
               style={styles.actionButton}

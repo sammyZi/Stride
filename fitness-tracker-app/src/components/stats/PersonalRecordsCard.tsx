@@ -78,10 +78,7 @@ export const PersonalRecordsCard: React.FC<PersonalRecordsCardProps> = ({
 
   const handlePress = (activityId?: string) => {
     if (activityId) {
-      navigation.navigate('History', { 
-        screen: 'ActivityDetail', 
-        params: { activityId } 
-      });
+      navigation.navigate('ActivityDetail', { activityId });
     }
   };
   const hasRecords =

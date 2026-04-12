@@ -139,6 +139,9 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, units, onPress }) => {
               <Text variant="small" color={Colors.textSecondary}>
                 {' '}/ {GoalsService.formatGoalTarget(goal, units)}
               </Text>
+              <Text variant="small" weight="bold" color={color} style={{ marginLeft: Spacing.sm }}>
+                {Math.floor(progress)}%
+              </Text>
             </View>
 
             <View style={styles.bottomRow}>
