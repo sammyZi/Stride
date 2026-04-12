@@ -32,7 +32,10 @@ import { useConfirmModal } from '../../hooks/useConfirmModal';
 import { useStatistics } from '../../hooks/useStatistics';
 import { Colors, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import StorageService from '../../services/storage/StorageService';
-import { UserProfile, UserSettings, StatsPeriod } from '../../types';
+import { UserProfile, UserSettings, StatsPeriod, Activity } from '../../types';
+import { ActivityCalendarCard } from '../../components/stats/ActivityCalendarCard';
+import { ProgressChartCard } from '../../components/stats/ProgressChartCard';
+import { TimelineCalendarCard } from '../../components/stats/TimelineCalendarCard';
 import { formatDistanceValue, formatDuration, formatDistance, formatPace, formatCalories } from '../../utils/formatting';
 
 type TabType = 'week' | 'month' | 'allTime';
@@ -48,6 +51,7 @@ export const ProfileScreen: React.FC = () => {
   const { modalState, showConfirm, hideModal } = useConfirmModal();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [allActivities, setAllActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -76,7 +80,9 @@ export const ProfileScreen: React.FC = () => {
     try {
       const savedProfile = await StorageService.getUserProfile();
       const savedSettings = await StorageService.getSettings();
+      const fetchedActivities = await StorageService.getActivities({});
       
+      setAllActivities(fetchedActivities);
       if (savedProfile) {
         setProfile(savedProfile);
         setEditName(savedProfile.name);
@@ -329,7 +335,7 @@ export const ProfileScreen: React.FC = () => {
         }
       >
         {/* Profile Picture and Name */}
-        <Card style={styles.profileCard}>
+        <Card variant="outlined" style={styles.profileCard}>
           <View style={styles.profileHeader}>
             <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarContainer}>
               {profile?.profilePictureUri ? (
@@ -398,13 +404,28 @@ export const ProfileScreen: React.FC = () => {
           )}
         </View>
 
+        {/* Daily Timeline */}
+        {allActivities.length > 0 && (
+          <TimelineCalendarCard activities={allActivities} />
+        )}
+
+        {/* Activity Calendar Heatmap */}
+        {allActivities.length > 0 && (
+          <ActivityCalendarCard activities={allActivities} />
+        )}
+
+        {/* Progress Charts */}
+        {allActivities.length > 0 && (
+          <ProgressChartCard activities={allActivities} units={settings?.units || 'metric'} />
+        )}
+
         {/* Profile Details */}
         <View style={styles.detailsContainer}>
           <Text variant="medium" weight="semiBold" style={styles.sectionTitle}>
             Details
           </Text>
 
-          <Card style={styles.detailsCard}>
+          <Card variant="outlined" style={styles.detailsCard}>
             <View style={styles.detailRow}>
               <View style={styles.detailIcon}>
                 <Ionicons name="person-outline" size={18} color={Colors.primary} />

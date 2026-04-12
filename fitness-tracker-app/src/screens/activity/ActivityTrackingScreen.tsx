@@ -287,11 +287,6 @@ export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ 
 
   const handleStart = async () => {
     try {
-      // Always ensure battery optimization is unrestricted before tracking
-      if (Platform.OS === 'android') {
-        await BatteryOptimizationService.ensureBatteryExemption('tracking', true);
-      }
-
       // Check if there's already an activity in progress
       if (ActivityService.isActivityInProgress()) {
         console.log('Activity already in progress, stopping it first');
@@ -804,11 +799,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
   },
   pauseButton: {
     backgroundColor: Colors.warning,

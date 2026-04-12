@@ -24,7 +24,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   color = Colors.primary,
 }) => {
   return (
-    <Card style={styles.card}>
+    <Card variant="outlined" style={styles.card}>
       <View style={[styles.iconContainer, { backgroundColor: `${color}15` }]}>
         <Ionicons name={icon} size={24} color={color} />
       </View>
