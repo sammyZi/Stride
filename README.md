@@ -1,4 +1,4 @@
-# FitTracker
+# Stride - FitTracker
 
 A comprehensive fitness tracking solution consisting of a React Native mobile app and a Next.js landing page.
 
