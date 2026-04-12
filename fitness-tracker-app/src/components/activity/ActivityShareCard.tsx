@@ -54,7 +54,7 @@ export const ActivityShareCard: React.FC<ActivityShareCardProps> = ({
             >
                 <View style={styles.headerContent}>
                     <View style={styles.activityTypeContainer}>
-                        <MaterialCommunityIcons
+                        <Ionicons
                             name={getActivityIcon() as any}
                             size={72}
                             color="#FFFFFF"
