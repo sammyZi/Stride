@@ -1,6 +1,6 @@
 /**
  * GoalsScreen Component
- * Displays and manages user goals
+ * Displays and manages user goals with polished UI
  */
 
 import React, { useState } from 'react';
@@ -10,10 +10,12 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  Platform,
+  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, ConfirmModal } from '../../components/common';
+import { Card } from '../../components/common/Card';
 import { GoalCard } from '../../components/goals/GoalCard';
 import { CreateGoalModal } from '../../components/goals/CreateGoalModal';
 import { useGoals } from '../../hooks/useGoals';
@@ -121,6 +123,42 @@ export const GoalsScreen: React.FC = () => {
     );
   };
 
+  const hasGoals = activeGoals.length > 0 || achievedGoals.length > 0;
+
+  const renderSummaryStrip = () => {
+    if (!hasGoals) return null;
+    const totalGoals = activeGoals.length + achievedGoals.length;
+    return (
+      <Card variant="outlined" style={styles.summaryCard}>
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryItem}>
+            <View style={[styles.summaryDot, { backgroundColor: Colors.primary }]} />
+            <Text variant="large" weight="bold" color={Colors.textPrimary}>
+              {activeGoals.length}
+            </Text>
+            <Text variant="extraSmall" color={Colors.textSecondary}>Active</Text>
+          </View>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryItem}>
+            <View style={[styles.summaryDot, { backgroundColor: Colors.success }]} />
+            <Text variant="large" weight="bold" color={Colors.textPrimary}>
+              {achievedGoals.length}
+            </Text>
+            <Text variant="extraSmall" color={Colors.textSecondary}>Achieved</Text>
+          </View>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryItem}>
+            <View style={[styles.summaryDot, { backgroundColor: Colors.warning }]} />
+            <Text variant="large" weight="bold" color={Colors.textPrimary}>
+              {totalGoals}
+            </Text>
+            <Text variant="extraSmall" color={Colors.textSecondary}>Total</Text>
+          </View>
+        </View>
+      </Card>
+    );
+  };
+
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <View style={styles.emptyIcon}>
@@ -149,9 +187,14 @@ export const GoalsScreen: React.FC = () => {
 
     return (
       <View style={styles.section}>
-        <Text variant="mediumLarge" weight="semiBold" style={styles.sectionTitle}>
-          Active Goals
-        </Text>
+        <View style={styles.sectionHeader}>
+          <Text variant="mediumLarge" weight="semiBold" color={Colors.textPrimary}>
+            Active Goals
+          </Text>
+          <Text variant="small" color={Colors.textSecondary}>
+            {activeGoals.length} {activeGoals.length === 1 ? 'goal' : 'goals'}
+          </Text>
+        </View>
         <View style={styles.goalsGrid}>
           {activeGoals.map((goal) => (
             <GoalCard
@@ -172,12 +215,14 @@ export const GoalsScreen: React.FC = () => {
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text variant="mediumLarge" weight="semiBold">
-            Achieved Goals
-          </Text>
+          <View style={styles.achievedTitleRow}>
+            <Ionicons name="trophy" size={18} color={Colors.warning} />
+            <Text variant="mediumLarge" weight="semiBold" color={Colors.textPrimary}>
+              Achieved
+            </Text>
+          </View>
           <View style={styles.achievementBadge}>
-            <Ionicons name="trophy" size={16} color={Colors.warning} />
-            <Text variant="small" weight="medium" color={Colors.warning}>
+            <Text variant="small" weight="bold" color={Colors.warning}>
               {achievedGoals.length}
             </Text>
           </View>
@@ -201,12 +246,11 @@ export const GoalsScreen: React.FC = () => {
     );
   };
 
-  const hasGoals = activeGoals.length > 0 || achievedGoals.length > 0;
-
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text variant="large" weight="bold">
+        <Text variant="large" weight="bold" color={Colors.textPrimary}>
           Goals
         </Text>
         {hasGoals && (
@@ -214,7 +258,7 @@ export const GoalsScreen: React.FC = () => {
             style={styles.addButton}
             onPress={() => setCreateModalVisible(true)}
           >
-            <Ionicons name="add-circle" size={28} color={Colors.primary} />
+            <Ionicons name="add" size={20} color={Colors.surface} />
           </TouchableOpacity>
         )}
       </View>
@@ -228,11 +272,13 @@ export const GoalsScreen: React.FC = () => {
             refreshing={loading}
             onRefresh={refresh}
             tintColor={Colors.primary}
+            colors={[Colors.primary]}
           />
         }
       >
         {hasGoals ? (
           <>
+            {renderSummaryStrip()}
             {renderActiveGoals()}
             {renderAchievedGoals()}
           </>
@@ -259,7 +305,7 @@ export const GoalsScreen: React.FC = () => {
         loadingMessage={modalState.loadingMessage}
         onRequestClose={hideModal}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -267,6 +313,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.surface,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 44,
   },
   header: {
     height: 60,
@@ -279,7 +326,12 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   addButton: {
-    padding: Spacing.xs,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollView: {
     flex: 1,
@@ -287,11 +339,32 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.lg,
   },
+  summaryCard: {
+    marginBottom: Spacing.xl,
+    padding: Spacing.lg,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  summaryItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  summaryDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  summaryDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: Colors.border,
+  },
   section: {
     marginBottom: Spacing.xl,
-  },
-  sectionTitle: {
-    marginBottom: Spacing.md,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -299,14 +372,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: Spacing.md,
   },
-  achievementBadge: {
+  achievedTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
+    gap: Spacing.sm,
+  },
+  achievementBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: `${Colors.warning}20`,
-    borderRadius: BorderRadius.medium,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   goalsGrid: {
     gap: Spacing.md,

@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../../components/common';
 import { ActivityCard } from '../../components/activity';
 import { EmptyState } from '../../components/common';
+import { MonthlyCalendarCard } from '../../components/stats/MonthlyCalendarCard';
 import { useActivityHistory } from '../../hooks';
 import { Activity, ActivityType, UnitSystem } from '../../types';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../../constants/theme';
@@ -134,6 +135,38 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
     </View>
   ), [activityTypeFilter, dateRangeFilter]);
 
+  const renderCalendarHeader = React.useCallback(() => (
+    <View>
+      <View style={styles.header}>
+        <Text variant="large" weight="bold" color={Colors.textPrimary}>
+          Activity History
+        </Text>
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => setFilterModalVisible(true)}
+        >
+          <Ionicons name="filter" size={20} color={Colors.primary} />
+          {(activityTypeFilter !== 'all' || dateRangeFilter !== 'all') && (
+            <View style={styles.filterBadge} />
+          )}
+        </TouchableOpacity>
+      </View>
+      {activities.length > 0 && (
+        <>
+          <View style={styles.calendarGap} />
+          <MonthlyCalendarCard activities={activities} units={units} />
+          <View style={styles.sectionSeparator}>
+            <View style={styles.separatorLine} />
+            <Text variant="small" weight="semiBold" color={Colors.textSecondary}>
+              All Activities
+            </Text>
+            <View style={styles.separatorLine} />
+          </View>
+        </>
+      )}
+    </View>
+  ), [activityTypeFilter, dateRangeFilter, activities, units]);
+
   const renderListFooter = React.useCallback(() => {
     if (!hasMore || activities.length === 0) return null;
 
@@ -229,7 +262,6 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
   return (
     <View style={styles.container}>
       <View style={styles.statusBarSpacer} />
-      {renderListHeader()}
       {loading && activities.length === 0 ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
@@ -239,7 +271,7 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
           data={activities}
           renderItem={renderActivityCard}
           keyExtractor={keyExtractor}
-          getItemLayout={getItemLayout}
+          ListHeaderComponent={renderCalendarHeader}
           ListFooterComponent={renderListFooter}
           ListEmptyComponent={!loading ? renderEmptyState : null}
           contentContainerStyle={[
@@ -394,5 +426,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...Shadows.medium,
+  },
+  calendarGap: {
+    height: Spacing.md,
+  },
+  sectionSeparator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
+    gap: Spacing.md,
+  },
+  separatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
   },
 });

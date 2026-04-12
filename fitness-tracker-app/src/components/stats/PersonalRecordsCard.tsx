@@ -4,7 +4,8 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Card } from '../common/Card';
 import { Text } from '../common/Text';
@@ -26,6 +27,7 @@ interface RecordItemProps {
   color: string;
   showBadge?: boolean;
   badgeColor?: string;
+  onPress?: () => void;
 }
 
 const RecordItem: React.FC<RecordItemProps> = ({
@@ -36,8 +38,9 @@ const RecordItem: React.FC<RecordItemProps> = ({
   color,
   showBadge = true,
   badgeColor = Colors.warning,
+  onPress,
 }) => (
-  <View style={styles.recordItem}>
+  <TouchableOpacity style={styles.recordItem} onPress={onPress} activeOpacity={0.7} disabled={!onPress}>
     <View style={[styles.recordIcon, { backgroundColor: `${color}15` }]}>
       <Icon name={iconName} size={20} color={color} />
       {showBadge && (
@@ -63,7 +66,7 @@ const RecordItem: React.FC<RecordItemProps> = ({
         {value}
       </Text>
     </View>
-  </View>
+  </TouchableOpacity>
 );
 
 export const PersonalRecordsCard: React.FC<PersonalRecordsCardProps> = ({
@@ -71,6 +74,16 @@ export const PersonalRecordsCard: React.FC<PersonalRecordsCardProps> = ({
   units,
   showBadges = true,
 }) => {
+  const navigation = useNavigation<any>();
+
+  const handlePress = (activityId?: string) => {
+    if (activityId) {
+      navigation.navigate('History', { 
+        screen: 'ActivityDetail', 
+        params: { activityId } 
+      });
+    }
+  };
   const hasRecords =
     records.longestDistance.value > 0 ||
     records.fastestPace.value > 0 ||
@@ -129,6 +142,7 @@ export const PersonalRecordsCard: React.FC<PersonalRecordsCardProps> = ({
             color={Colors.primary}
             showBadge={showBadges}
             badgeColor={Colors.primary}
+            onPress={() => handlePress(records.longestDistance.activityId)}
           />
         )}
 
@@ -141,6 +155,7 @@ export const PersonalRecordsCard: React.FC<PersonalRecordsCardProps> = ({
             color={Colors.success}
             showBadge={showBadges}
             badgeColor={Colors.success}
+            onPress={() => handlePress(records.fastestPace.activityId)}
           />
         )}
 
@@ -153,6 +168,7 @@ export const PersonalRecordsCard: React.FC<PersonalRecordsCardProps> = ({
             color={Colors.info}
             showBadge={showBadges}
             badgeColor={Colors.info}
+            onPress={() => handlePress(records.longestDuration.activityId)}
           />
         )}
 
@@ -165,6 +181,7 @@ export const PersonalRecordsCard: React.FC<PersonalRecordsCardProps> = ({
             color={Colors.warning}
             showBadge={showBadges}
             badgeColor={Colors.warning}
+            onPress={() => handlePress(records.mostSteps.activityId)}
           />
         )}
       </View>
