@@ -1,21 +1,21 @@
 /**
  * ActivityDetailScreen
  * Displays complete activity information with route map, metrics, and actions
+ * Performance optimized: deferred map rendering, memoized computations
  */
 
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useRef, useLayoutEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
   Modal,
   ActivityIndicator,
-  Animated,
+  ScrollView,
   StatusBar,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { captureRef } from 'react-native-view-shot';
 import { Text, ShareModal, ShareOption } from '../../components/common';
 import { StaticRouteMap } from '../../components/map';
@@ -89,6 +89,17 @@ export const ActivityDetailScreen: React.FC<any> = ({
     };
   }, [activityId]);
 
+  // Memoize computed values
+  const computedStats = useMemo(() => {
+    if (!activity) return null;
+    return {
+      speed: ((activity.distance / 1000) / (activity.duration / 3600)).toFixed(1),
+      cadence: Math.round((activity.steps / activity.duration) * 60),
+      stride: ((activity.distance / activity.steps) * 100).toFixed(0),
+      avgAccuracy: (activity.route.reduce((sum, p) => sum + p.accuracy, 0) / activity.route.length).toFixed(1),
+    };
+  }, [activity]);
+
   const handleDelete = () => {
     setShowDeleteModal(true);
   };
@@ -120,27 +131,21 @@ export const ActivityDetailScreen: React.FC<any> = ({
     if (!activity) return;
 
     try {
-      // Show loading state
       setGeneratingImage(true);
-
-      // Render the share card off-screen
       setRenderShareCard(true);
 
-      // Wait longer for map to fully render with route
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       if (!shareCardRef.current) {
         throw new Error('Share card not rendered');
       }
 
-      // Capture the custom share card as maximum quality image
       const uri = await captureRef(shareCardRef, {
         format: 'png',
-        quality: 1.0, // Maximum quality
+        quality: 1.0,
         result: 'tmpfile',
       });
 
-      // Hide the share card
       setRenderShareCard(false);
       setGeneratingImage(false);
 
@@ -178,14 +183,6 @@ export const ActivityDetailScreen: React.FC<any> = ({
       onPress: handleShareAsText,
     },
   ];
-
-  const getActivityIcon = () => {
-    return 'fitness';
-  };
-
-  const getActivityColor = () => {
-    return Colors.primary;
-  };
 
   // Show loading state while data is being fetched
   if (!isReady) {
@@ -248,41 +245,40 @@ export const ActivityDetailScreen: React.FC<any> = ({
         <View style={styles.statusBarSpacer} />
         {/* Header */}
         <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
-        </TouchableOpacity>
-        <Text variant="large" weight="bold" color={Colors.textPrimary}>
-          Activity Details
-        </Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerButton} onPress={handleShare}>
-            <Ionicons name="share-outline" size={24} color={Colors.textPrimary} />
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton} onPress={handleDelete}>
-            <Ionicons name="trash-outline" size={24} color={Colors.error} />
-          </TouchableOpacity>
+          <Text variant="large" weight="bold" color={Colors.textPrimary}>
+            Activity Details
+          </Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerButton} onPress={handleShare}>
+              <Ionicons name="share-outline" size={24} color={Colors.textPrimary} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerButton} onPress={handleDelete}>
+              <Ionicons name="trash-outline" size={24} color={Colors.error} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
-      {activity && (
-        <Animated.ScrollView
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           {/* Capturable Activity Card */}
           <View ref={activityCardRef} style={styles.capturableCard} collapsable={false}>
-            {/* Activity Type and Date */}
+            {/* Activity Type Header Card */}
             <View style={styles.titleSection}>
               <View style={styles.typeContainer}>
-                <View style={[styles.typeIcon, { backgroundColor: getActivityColor() + '20' }]}>
+                <View style={[styles.typeIcon, { backgroundColor: Colors.primary + '15' }]}>
                   <Ionicons
-                    name={getActivityIcon() as any}
+                    name="fitness"
                     size={32}
-                    color={getActivityColor()}
+                    color={Colors.primary}
                   />
                 </View>
                 <View style={styles.titleText}>
@@ -296,11 +292,11 @@ export const ActivityDetailScreen: React.FC<any> = ({
               </View>
             </View>
 
-            {/* Main Metrics Grid - Enhanced */}
+            {/* Main Metrics Grid */}
             <View style={styles.metricsGrid}>
               <View style={styles.metricCard}>
-                <View style={[styles.metricIconContainer, { backgroundColor: Colors.primary + '15' }]}>
-                  <Ionicons name="navigate" size={24} color={Colors.primary} />
+                <View style={[styles.metricIconContainer, { backgroundColor: Colors.primary + '12' }]}>
+                  <Ionicons name="navigate" size={22} color={Colors.primary} />
                 </View>
                 <Text variant="large" weight="bold" color={Colors.textPrimary} style={styles.metricValue}>
                   {formatDistance(activity.distance, units, 2).split(' ')[0]}
@@ -314,8 +310,8 @@ export const ActivityDetailScreen: React.FC<any> = ({
               </View>
 
               <View style={styles.metricCard}>
-                <View style={[styles.metricIconContainer, { backgroundColor: Colors.success + '15' }]}>
-                  <Ionicons name="time" size={24} color={Colors.success} />
+                <View style={[styles.metricIconContainer, { backgroundColor: Colors.success + '12' }]}>
+                  <Ionicons name="time" size={22} color={Colors.success} />
                 </View>
                 <Text variant="large" weight="bold" color={Colors.textPrimary} style={styles.metricValue}>
                   {formatDuration(activity.duration)}
@@ -326,8 +322,8 @@ export const ActivityDetailScreen: React.FC<any> = ({
               </View>
 
               <View style={styles.metricCard}>
-                <View style={[styles.metricIconContainer, { backgroundColor: Colors.info + '15' }]}>
-                  <Ionicons name="speedometer" size={24} color={Colors.info} />
+                <View style={[styles.metricIconContainer, { backgroundColor: Colors.info + '12' }]}>
+                  <Ionicons name="speedometer" size={22} color={Colors.info} />
                 </View>
                 <Text variant="mediumLarge" weight="bold" color={Colors.textPrimary} style={styles.metricValue}>
                   {formatPace(activity.averagePace, units).split(' ')[0]}
@@ -338,8 +334,8 @@ export const ActivityDetailScreen: React.FC<any> = ({
               </View>
 
               <View style={styles.metricCard}>
-                <View style={[styles.metricIconContainer, { backgroundColor: Colors.primary + '15' }]}>
-                  <Ionicons name="footsteps" size={24} color={Colors.primary} />
+                <View style={[styles.metricIconContainer, { backgroundColor: Colors.primary + '12' }]}>
+                  <Ionicons name="footsteps" size={22} color={Colors.primary} />
                 </View>
                 <Text variant="mediumLarge" weight="bold" color={Colors.textPrimary} style={styles.metricValue}>
                   {activity.steps.toLocaleString()}
@@ -350,8 +346,8 @@ export const ActivityDetailScreen: React.FC<any> = ({
               </View>
 
               <View style={styles.metricCard}>
-                <View style={[styles.metricIconContainer, { backgroundColor: Colors.error + '15' }]}>
-                  <Ionicons name="flame" size={24} color={Colors.error} />
+                <View style={[styles.metricIconContainer, { backgroundColor: Colors.error + '12' }]}>
+                  <Ionicons name="flame" size={22} color={Colors.error} />
                 </View>
                 <Text variant="mediumLarge" weight="bold" color={Colors.textPrimary} style={styles.metricValue}>
                   {Math.round(activity.calories)}
@@ -363,59 +359,61 @@ export const ActivityDetailScreen: React.FC<any> = ({
             </View>
 
             {/* Performance Insights */}
-            <View style={styles.insightsSection}>
-              <Text variant="mediumLarge" weight="semiBold" color={Colors.textPrimary} style={styles.sectionTitle}>
-                Performance Insights
-              </Text>
-              <View style={styles.insightsGrid}>
-                <View style={styles.insightCard}>
-                  <View style={styles.insightHeader}>
-                    <Ionicons name="trending-up" size={20} color={Colors.success} />
-                    <Text variant="small" weight="semiBold" color={Colors.textPrimary}>
-                      Speed
+            {computedStats && (
+              <View style={styles.insightsSection}>
+                <Text variant="mediumLarge" weight="semiBold" color={Colors.textPrimary} style={styles.sectionTitle}>
+                  Performance Insights
+                </Text>
+                <View style={styles.insightsGrid}>
+                  <View style={styles.insightCard}>
+                    <View style={styles.insightHeader}>
+                      <Ionicons name="trending-up" size={18} color={Colors.success} />
+                      <Text variant="small" weight="semiBold" color={Colors.textPrimary}>
+                        Speed
+                      </Text>
+                    </View>
+                    <Text variant="mediumLarge" weight="bold" color={Colors.success}>
+                      {computedStats.speed}
+                    </Text>
+                    <Text variant="extraSmall" color={Colors.textSecondary}>
+                      {units === 'metric' ? 'km/h' : 'mph'}
                     </Text>
                   </View>
-                  <Text variant="mediumLarge" weight="bold" color={Colors.success}>
-                    {((activity.distance / 1000) / (activity.duration / 3600)).toFixed(1)}
-                  </Text>
-                  <Text variant="extraSmall" color={Colors.textSecondary}>
-                    {units === 'metric' ? 'km/h' : 'mph'}
-                  </Text>
-                </View>
 
-                <View style={styles.insightCard}>
-                  <View style={styles.insightHeader}>
-                    <Ionicons name="footsteps" size={20} color={Colors.info} />
-                    <Text variant="small" weight="semiBold" color={Colors.textPrimary}>
-                      Cadence
+                  <View style={styles.insightCard}>
+                    <View style={styles.insightHeader}>
+                      <Ionicons name="footsteps" size={18} color={Colors.info} />
+                      <Text variant="small" weight="semiBold" color={Colors.textPrimary}>
+                        Cadence
+                      </Text>
+                    </View>
+                    <Text variant="mediumLarge" weight="bold" color={Colors.info}>
+                      {computedStats.cadence}
+                    </Text>
+                    <Text variant="extraSmall" color={Colors.textSecondary}>
+                      steps/min
                     </Text>
                   </View>
-                  <Text variant="mediumLarge" weight="bold" color={Colors.info}>
-                    {Math.round((activity.steps / activity.duration) * 60)}
-                  </Text>
-                  <Text variant="extraSmall" color={Colors.textSecondary}>
-                    steps/min
-                  </Text>
-                </View>
 
-                <View style={styles.insightCard}>
-                  <View style={styles.insightHeader}>
-                    <Ionicons name="resize" size={20} color={Colors.warning} />
-                    <Text variant="small" weight="semiBold" color={Colors.textPrimary}>
-                      Stride
+                  <View style={styles.insightCard}>
+                    <View style={styles.insightHeader}>
+                      <Ionicons name="resize" size={18} color={Colors.warning} />
+                      <Text variant="small" weight="semiBold" color={Colors.textPrimary}>
+                        Stride
+                      </Text>
+                    </View>
+                    <Text variant="mediumLarge" weight="bold" color={Colors.warning}>
+                      {computedStats.stride}
+                    </Text>
+                    <Text variant="extraSmall" color={Colors.textSecondary}>
+                      cm/step
                     </Text>
                   </View>
-                  <Text variant="mediumLarge" weight="bold" color={Colors.warning}>
-                    {((activity.distance / activity.steps) * 100).toFixed(0)}
-                  </Text>
-                  <Text variant="extraSmall" color={Colors.textSecondary}>
-                    cm/step
-                  </Text>
                 </View>
               </View>
-            </View>
+            )}
 
-            {/* Route Map - Lazy loaded */}
+            {/* Route Map */}
             <View style={styles.mapSection}>
               <View style={styles.mapHeader}>
                 <View>
@@ -457,22 +455,24 @@ export const ActivityDetailScreen: React.FC<any> = ({
               </View>
 
               {/* Map Stats */}
-              <View style={styles.mapStats}>
-                <View style={styles.mapStatItem}>
-                  <Ionicons name="analytics" size={16} color={Colors.success} />
-                  <Text variant="extraSmall" color={Colors.textSecondary}>
-                    Accuracy: {(activity.route.reduce((sum, p) => sum + p.accuracy, 0) / activity.route.length).toFixed(1)}m
-                  </Text>
-                </View>
-                {activity.elevationGain !== undefined && activity.elevationGain > 0 && (
+              {computedStats && (
+                <View style={styles.mapStats}>
                   <View style={styles.mapStatItem}>
-                    <Ionicons name="trending-up" size={16} color={Colors.warning} />
+                    <Ionicons name="analytics" size={16} color={Colors.success} />
                     <Text variant="extraSmall" color={Colors.textSecondary}>
-                      Elevation: +{activity.elevationGain.toFixed(0)}m
+                      Accuracy: {computedStats.avgAccuracy}m
                     </Text>
                   </View>
-                )}
-              </View>
+                  {activity.elevationGain !== undefined && activity.elevationGain > 0 && (
+                    <View style={styles.mapStatItem}>
+                      <Ionicons name="trending-up" size={16} color={Colors.warning} />
+                      <Text variant="extraSmall" color={Colors.textSecondary}>
+                        Elevation: +{activity.elevationGain.toFixed(0)}m
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
 
             {/* Activity Details */}
@@ -482,7 +482,7 @@ export const ActivityDetailScreen: React.FC<any> = ({
               </Text>
               <View style={styles.statsList}>
                 <View style={styles.statRow}>
-                  <View style={styles.statIconWrapper}>
+                  <View style={[styles.statIconWrapper, { backgroundColor: Colors.primary + '12' }]}>
                     <Ionicons name="calendar" size={18} color={Colors.primary} />
                   </View>
                   <View style={styles.statContent}>
@@ -496,7 +496,7 @@ export const ActivityDetailScreen: React.FC<any> = ({
                 </View>
 
                 <View style={styles.statRow}>
-                  <View style={styles.statIconWrapper}>
+                  <View style={[styles.statIconWrapper, { backgroundColor: Colors.success + '12' }]}>
                     <Ionicons name="time-outline" size={18} color={Colors.success} />
                   </View>
                   <View style={styles.statContent}>
@@ -510,7 +510,7 @@ export const ActivityDetailScreen: React.FC<any> = ({
                 </View>
 
                 <View style={styles.statRow}>
-                  <View style={styles.statIconWrapper}>
+                  <View style={[styles.statIconWrapper, { backgroundColor: Colors.info + '12' }]}>
                     <Ionicons name="location" size={18} color={Colors.info} />
                   </View>
                   <View style={styles.statContent}>
@@ -518,14 +518,14 @@ export const ActivityDetailScreen: React.FC<any> = ({
                       GPS Tracking
                     </Text>
                     <Text variant="regular" weight="semiBold" color={Colors.textPrimary}>
-                      {activity.route.length} points • {(activity.route.reduce((sum, p) => sum + p.accuracy, 0) / activity.route.length).toFixed(1)}m accuracy
+                      {activity.route.length} points • {computedStats?.avgAccuracy}m accuracy
                     </Text>
                   </View>
                 </View>
 
                 {activity.elevationGain !== undefined && activity.elevationGain > 0 && (
-                  <View style={styles.statRow}>
-                    <View style={styles.statIconWrapper}>
+                  <View style={[styles.statRow, { borderBottomWidth: 0 }]}>
+                    <View style={[styles.statIconWrapper, { backgroundColor: Colors.warning + '12' }]}>
                       <Ionicons name="trending-up" size={18} color={Colors.warning} />
                     </View>
                     <View style={styles.statContent}>
@@ -550,80 +550,79 @@ export const ActivityDetailScreen: React.FC<any> = ({
             </View>
           </View>
           {/* End Capturable Card */}
-        </Animated.ScrollView>
-      )}
+        </ScrollView>
 
-      {/* Share Modal */}
-      <ShareModal
-        visible={showShareModal || generatingImage}
-        onClose={() => !generatingImage && setShowShareModal(false)}
-        title={generatingImage ? "Generating Image..." : "Share Activity"}
-        options={shareOptions}
-        loading={isSharing || generatingImage}
-        loadingMessage={generatingImage ? "Creating high-quality image with route map" : "Sharing..."}
-      />
+        {/* Share Modal */}
+        <ShareModal
+          visible={showShareModal || generatingImage}
+          onClose={() => !generatingImage && setShowShareModal(false)}
+          title={generatingImage ? "Generating Image..." : "Share Activity"}
+          options={shareOptions}
+          loading={isSharing || generatingImage}
+          loadingMessage={generatingImage ? "Creating high-quality image with route map" : "Sharing..."}
+        />
 
-      {/* Off-screen Share Card for Image Generation */}
-      {renderShareCard && activity && (
-        <View style={styles.offscreenContainer}>
-          <View ref={shareCardRef} collapsable={false}>
-            <ActivityShareCard activity={activity} units={units} />
-          </View>
-        </View>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        visible={showDeleteModal}
-        transparent
-        animationType="fade"
-        onRequestClose={cancelDelete}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalIconContainer}>
-              <Ionicons name="trash" size={48} color={Colors.error} />
+        {/* Off-screen Share Card for Image Generation */}
+        {renderShareCard && activity && (
+          <View style={styles.offscreenContainer}>
+            <View ref={shareCardRef} collapsable={false}>
+              <ActivityShareCard activity={activity} units={units} />
             </View>
-
-            <Text variant="large" weight="bold" color={Colors.textPrimary} style={styles.modalTitle}>
-              Delete Activity
-            </Text>
-
-            <Text variant="regular" color={Colors.textSecondary} style={styles.modalMessage}>
-              Are you sure you want to delete this activity? This action cannot be undone.
-            </Text>
-
-            {isDeleting ? (
-              <View style={styles.modalLoadingContainer}>
-                <ActivityIndicator size="large" color={Colors.error} />
-                <Text variant="regular" color={Colors.textSecondary} style={styles.modalLoadingText}>
-                  Deleting...
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.modalActions}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.modalButtonCancel]}
-                  onPress={cancelDelete}
-                >
-                  <Text variant="regular" weight="semiBold" color={Colors.textPrimary}>
-                    Cancel
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.modalButtonDelete]}
-                  onPress={confirmDelete}
-                >
-                  <Text variant="regular" weight="semiBold" color="#FFFFFF">
-                    Delete
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
-        </View>
-      </Modal>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          visible={showDeleteModal}
+          transparent
+          animationType="fade"
+          onRequestClose={cancelDelete}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalIconContainer}>
+                <Ionicons name="trash" size={48} color={Colors.error} />
+              </View>
+
+              <Text variant="large" weight="bold" color={Colors.textPrimary} style={styles.modalTitle}>
+                Delete Activity
+              </Text>
+
+              <Text variant="regular" color={Colors.textSecondary} style={styles.modalMessage}>
+                Are you sure you want to delete this activity? This action cannot be undone.
+              </Text>
+
+              {isDeleting ? (
+                <View style={styles.modalLoadingContainer}>
+                  <ActivityIndicator size="large" color={Colors.error} />
+                  <Text variant="regular" color={Colors.textSecondary} style={styles.modalLoadingText}>
+                    Deleting...
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.modalButtonCancel]}
+                    onPress={cancelDelete}
+                  >
+                    <Text variant="regular" weight="semiBold" color={Colors.textPrimary}>
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.modalButtonDelete]}
+                    onPress={confirmDelete}
+                  >
+                    <Text variant="regular" weight="semiBold" color="#FFFFFF">
+                      Delete
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
       </View>
     </View>
   );
@@ -632,15 +631,15 @@ export const ActivityDetailScreen: React.FC<any> = ({
 const styles = StyleSheet.create({
   fullScreenContainer: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.surface,
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.surface,
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 44,
   },
   statusBarSpacer: {
-    height: 0, // Padding is on container now
+    height: 0,
   },
   loadingContainer: {
     flex: 1,
@@ -648,16 +647,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   capturableCard: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: Colors.surface,
   },
   header: {
-    height: 60,
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
   },
   headerButton: {
@@ -665,6 +664,7 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 20,
   },
   headerActions: {
     flexDirection: 'row',
@@ -680,20 +680,20 @@ const styles = StyleSheet.create({
   },
   titleSection: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xl,
-    backgroundColor: '#FFFFFF',
+    paddingVertical: Spacing.lg,
+    backgroundColor: Colors.surface,
   },
   typeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   typeIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: BorderRadius.large,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.lg,
+    marginRight: Spacing.md,
   },
   titleText: {
     flex: 1,
@@ -701,27 +701,28 @@ const styles = StyleSheet.create({
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    gap: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+    gap: Spacing.sm,
   },
   metricCard: {
     width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: BorderRadius.large,
-    padding: Spacing.lg,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: Spacing.md,
     alignItems: 'center',
-    minHeight: 120,
+    minHeight: 110,
     justifyContent: 'center',
-    ...Shadows.small,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   metricIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.medium,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   metricValue: {
     marginTop: Spacing.xs,
@@ -735,36 +736,37 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    opacity: 0.7,
+    opacity: 0.6,
   },
   sectionTitle: {
     marginBottom: Spacing.md,
   },
   insightsSection: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.lg,
   },
   insightsGrid: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   insightCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: BorderRadius.large,
-    padding: Spacing.lg,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: Spacing.md,
     alignItems: 'center',
-    ...Shadows.small,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   insightHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   mapSection: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.lg,
   },
   mapHeader: {
     flexDirection: 'row',
@@ -779,26 +781,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.surface,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Colors.border,
   },
   heatmapToggleActive: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
   },
   mapContainer: {
-    height: 320,
-    borderRadius: BorderRadius.large,
+    height: 300,
+    borderRadius: 16,
     overflow: 'hidden',
-    ...Shadows.medium,
+    backgroundColor: '#F0F0F0',
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   mapStats: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: Spacing.lg,
-    marginTop: Spacing.md,
-    paddingVertical: Spacing.sm,
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
   mapStatItem: {
     flexDirection: 'row',
@@ -806,27 +810,28 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   statsSection: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.lg,
   },
   statsList: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: BorderRadius.large,
-    padding: Spacing.md,
-    ...Shadows.small,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   statRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.sm,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
   },
   statIconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.medium,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     backgroundColor: '#F5F5F5',
     alignItems: 'center',
     justifyContent: 'center',

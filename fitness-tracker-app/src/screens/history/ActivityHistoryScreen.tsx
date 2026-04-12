@@ -13,6 +13,7 @@ import {
   Modal,
   StatusBar,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -76,23 +77,12 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
   const isNavigatingRef = React.useRef(false);
 
   const handleActivityPress = React.useCallback((activity: Activity) => {
-    if (isNavigatingRef.current) {
-      console.log('Navigation blocked - already navigating');
-      return; // Prevent double tap
-    }
-
-    console.log('Navigating to activity:', activity.id);
+    if (isNavigatingRef.current) return;
     isNavigatingRef.current = true;
-    
-    // Use requestAnimationFrame for smoother navigation
-    requestAnimationFrame(() => {
-      navigation.navigate('ActivityDetail', { activityId: activity.id });
-    });
-
-    // Reset after a shorter timeout since useFocusEffect will also reset it
+    navigation.navigate('ActivityDetail', { activityId: activity.id });
     setTimeout(() => {
       isNavigatingRef.current = false;
-    }, 300);
+    }, 500);
   }, [navigation]);
 
   const renderActivityCard = React.useCallback(
@@ -240,35 +230,41 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
     <View style={styles.container}>
       <View style={styles.statusBarSpacer} />
       {renderListHeader()}
-      <FlatList
-        data={activities}
-        renderItem={renderActivityCard}
-        keyExtractor={keyExtractor}
-        getItemLayout={getItemLayout}
-        ListFooterComponent={renderListFooter}
-        ListEmptyComponent={!loading ? renderEmptyState : null}
-        contentContainerStyle={[
-          styles.listContent,
-          activities.length === 0 && styles.emptyListContent,
-        ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={Colors.primary}
-            colors={[Colors.primary]}
-          />
-        }
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
-        showsVerticalScrollIndicator={false}
-        removeClippedSubviews={Platform.OS === 'android'}
-        maxToRenderPerBatch={10}
-        updateCellsBatchingPeriod={50}
-        initialNumToRender={10}
-        windowSize={10}
-        disableIntervalMomentum={true}
-      />
+      {loading && activities.length === 0 ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={activities}
+          renderItem={renderActivityCard}
+          keyExtractor={keyExtractor}
+          getItemLayout={getItemLayout}
+          ListFooterComponent={renderListFooter}
+          ListEmptyComponent={!loading ? renderEmptyState : null}
+          contentContainerStyle={[
+            styles.listContent,
+            activities.length === 0 && styles.emptyListContent,
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={Colors.primary}
+              colors={[Colors.primary]}
+            />
+          }
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          showsVerticalScrollIndicator={false}
+          removeClippedSubviews={Platform.OS === 'android'}
+          maxToRenderPerBatch={10}
+          updateCellsBatchingPeriod={50}
+          initialNumToRender={10}
+          windowSize={10}
+          disableIntervalMomentum={true}
+        />
+      )}
       {renderFilterModal()}
     </View>
   );
@@ -285,6 +281,11 @@ const styles = StyleSheet.create({
   },
   statusBarSpacer: {
     height: 0, // Padding is on container now
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   listContent: {
     paddingHorizontal: Spacing.lg,
