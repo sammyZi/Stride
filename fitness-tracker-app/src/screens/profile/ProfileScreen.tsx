@@ -33,9 +33,7 @@ import { useStatistics } from '../../hooks/useStatistics';
 import { Colors, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import StorageService from '../../services/storage/StorageService';
 import { UserProfile, UserSettings, StatsPeriod, Activity } from '../../types';
-import { ActivityCalendarCard } from '../../components/stats/ActivityCalendarCard';
 import { ProgressChartCard } from '../../components/stats/ProgressChartCard';
-import { TimelineCalendarCard } from '../../components/stats/TimelineCalendarCard';
 import { formatDistanceValue, formatDuration, formatDistance, formatPace, formatCalories } from '../../utils/formatting';
 
 type TabType = 'week' | 'month' | 'allTime';
@@ -404,15 +402,6 @@ export const ProfileScreen: React.FC = () => {
           )}
         </View>
 
-        {/* Daily Timeline */}
-        {allActivities.length > 0 && (
-          <TimelineCalendarCard activities={allActivities} />
-        )}
-
-        {/* Activity Calendar Heatmap */}
-        {allActivities.length > 0 && (
-          <ActivityCalendarCard activities={allActivities} />
-        )}
 
         {/* Progress Charts */}
         {allActivities.length > 0 && (

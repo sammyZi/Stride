@@ -1,10 +1,11 @@
 /**
  * GoalCard Component
- * Displays a single goal with progress bar
+ * Displays a single goal with circular progress indicator
  */
 
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../common/Text';
 import { Card } from '../common/Card';
@@ -17,6 +18,11 @@ interface GoalCardProps {
   units: 'metric' | 'imperial';
   onPress?: () => void;
 }
+
+const CIRCLE_SIZE = 56;
+const CIRCLE_STROKE = 5;
+const CIRCLE_RADIUS = (CIRCLE_SIZE - CIRCLE_STROKE) / 2;
+const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * CIRCLE_RADIUS;
 
 export const GoalCard: React.FC<GoalCardProps> = ({ goal, units, onPress }) => {
   const progress = GoalsService.getProgressPercentage(goal);
@@ -46,80 +52,108 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, units, onPress }) => {
   const getGoalLabel = (): string => {
     switch (goal.type) {
       case 'distance':
-        return 'Distance Goal';
+        return 'Distance';
       case 'frequency':
-        return 'Activity Goal';
+        return 'Activities';
       case 'duration':
-        return 'Duration Goal';
+        return 'Duration';
       default:
         return 'Goal';
     }
   };
 
   const getPeriodLabel = (): string => {
-    return goal.period === 'weekly' ? 'This Week' : 'This Month';
+    return goal.period === 'weekly' ? 'Weekly' : 'Monthly';
+  };
+
+  const getDaysRemaining = (): string => {
+    if (isAchieved) return 'Achieved!';
+    if (isExpired) return 'Expired';
+    const days = Math.ceil((goal.endDate - Date.now()) / (1000 * 60 * 60 * 24));
+    if (days === 0) return 'Ends today';
+    if (days === 1) return '1 day left';
+    return `${days} days left`;
   };
 
   const color = getGoalColor();
+  const strokeDashoffset = CIRCLE_CIRCUMFERENCE - (CIRCLE_CIRCUMFERENCE * Math.min(progress, 100)) / 100;
 
   return (
     <TouchableOpacity onPress={onPress} disabled={!onPress} activeOpacity={0.7}>
-      <Card style={styles.card}>
-        <View style={styles.header}>
-          <View style={[styles.iconContainer, { backgroundColor: `${color}20` }]}>
-            <Ionicons name={getGoalIcon()} size={24} color={color} />
-          </View>
-          <View style={styles.headerText}>
-            <Text variant="medium" weight="semiBold" color={Colors.textPrimary}>
-              {getGoalLabel()}
-            </Text>
-            <Text variant="small" color={Colors.textSecondary}>
-              {getPeriodLabel()}
-            </Text>
-          </View>
-          {isAchieved && (
-            <View style={styles.badge}>
-              <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
-            </View>
-          )}
-        </View>
-
-        <View style={styles.progressSection}>
-          <View style={styles.progressInfo}>
-            <Text variant="large" weight="bold" color={Colors.textPrimary}>
-              {GoalsService.formatGoalProgress(goal, units)}
-            </Text>
-            <Text variant="small" color={Colors.textSecondary}>
-              of {GoalsService.formatGoalTarget(goal, units)}
-            </Text>
-          </View>
-
-          <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBarBackground, { backgroundColor: `${color}20` }]}>
-              <View
-                style={[
-                  styles.progressBarFill,
-                  {
-                    width: `${progress}%`,
-                    backgroundColor: color,
-                  },
-                ]}
+      <Card variant="outlined" style={styles.card}>
+        <View style={styles.row}>
+          {/* Circular Progress */}
+          <View style={styles.progressCircleContainer}>
+            <Svg width={CIRCLE_SIZE} height={CIRCLE_SIZE}>
+              {/* Background circle */}
+              <Circle
+                cx={CIRCLE_SIZE / 2}
+                cy={CIRCLE_SIZE / 2}
+                r={CIRCLE_RADIUS}
+                stroke={`${color}20`}
+                strokeWidth={CIRCLE_STROKE}
+                fill="transparent"
               />
+              {/* Progress arc */}
+              <Circle
+                cx={CIRCLE_SIZE / 2}
+                cy={CIRCLE_SIZE / 2}
+                r={CIRCLE_RADIUS}
+                stroke={color}
+                strokeWidth={CIRCLE_STROKE}
+                fill="transparent"
+                strokeLinecap="round"
+                strokeDasharray={CIRCLE_CIRCUMFERENCE}
+                strokeDashoffset={strokeDashoffset}
+                rotation="-90"
+                origin={`${CIRCLE_SIZE / 2}, ${CIRCLE_SIZE / 2}`}
+              />
+            </Svg>
+            {/* Icon in center */}
+            <View style={styles.circleIconOverlay}>
+              {isAchieved ? (
+                <Ionicons name="checkmark" size={22} color={Colors.success} />
+              ) : (
+                <Ionicons name={getGoalIcon()} size={20} color={color} />
+              )}
             </View>
-            <Text variant="small" weight="medium" color={color}>
-              {progress.toFixed(0)}%
-            </Text>
+          </View>
+
+          {/* Goal Info */}
+          <View style={styles.info}>
+            <View style={styles.labelRow}>
+              <Text variant="medium" weight="semiBold" color={Colors.textPrimary}>
+                {getGoalLabel()}
+              </Text>
+              <View style={[styles.periodBadge, { backgroundColor: `${color}15` }]}>
+                <Text variant="extraSmall" weight="semiBold" color={color}>
+                  {getPeriodLabel()}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.progressRow}>
+              <Text variant="large" weight="bold" color={Colors.textPrimary}>
+                {GoalsService.formatGoalProgress(goal, units)}
+              </Text>
+              <Text variant="small" color={Colors.textSecondary}>
+                {' '}/ {GoalsService.formatGoalTarget(goal, units)}
+              </Text>
+            </View>
+
+            <View style={styles.bottomRow}>
+              {/* Mini progress bar */}
+              <View style={styles.miniBarContainer}>
+                <View style={[styles.miniBarBg, { backgroundColor: `${color}20` }]}>
+                  <View style={[styles.miniBarFill, { width: `${Math.min(progress, 100)}%`, backgroundColor: color }]} />
+                </View>
+              </View>
+              <Text variant="extraSmall" color={Colors.textSecondary}>
+                {getDaysRemaining()}
+              </Text>
+            </View>
           </View>
         </View>
-
-        {isExpired && !isAchieved && (
-          <View style={styles.expiredBanner}>
-            <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
-            <Text variant="extraSmall" color={Colors.textSecondary} style={styles.expiredText}>
-              Expired
-            </Text>
-          </View>
-        )}
       </Card>
     </TouchableOpacity>
   );
@@ -129,58 +163,56 @@ const styles = StyleSheet.create({
   card: {
     padding: Spacing.lg,
   },
-  header: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    gap: Spacing.lg,
   },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  progressCircleContainer: {
+    width: CIRCLE_SIZE,
+    height: CIRCLE_SIZE,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerText: {
+  circleIconOverlay: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  info: {
     flex: 1,
-    marginLeft: Spacing.md,
+    gap: 4,
   },
-  badge: {
-    marginLeft: Spacing.sm,
-  },
-  progressSection: {
-    gap: Spacing.md,
-  },
-  progressInfo: {
+  labelRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     gap: Spacing.sm,
   },
-  progressBarContainer: {
+  periodBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.small,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
+    marginTop: 2,
   },
-  progressBarBackground: {
+  miniBarContainer: {
     flex: 1,
-    height: 8,
-    borderRadius: 4,
+  },
+  miniBarBg: {
+    height: 4,
+    borderRadius: 2,
     overflow: 'hidden',
   },
-  progressBarFill: {
+  miniBarFill: {
     height: '100%',
-    borderRadius: 4,
-  },
-  expiredBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: Spacing.md,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    gap: Spacing.xs,
-  },
-  expiredText: {
-    marginLeft: Spacing.xs,
+    borderRadius: 2,
   },
 });
