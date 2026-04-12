@@ -43,7 +43,7 @@ export const ActivitySummaryCard: React.FC<ActivitySummaryCardProps> = ({
       {/* Header */}
       <View style={styles.header}>
         <View style={[styles.iconContainer, { backgroundColor: getActivityColor() + '20' }]}>
-          <MaterialCommunityIcons
+          <Ionicons
             name={getActivityIcon() as any}
             size={40}
             color={getActivityColor()}

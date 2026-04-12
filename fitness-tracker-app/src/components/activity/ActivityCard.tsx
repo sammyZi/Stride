@@ -42,7 +42,7 @@ const ActivityCardComponent: React.FC<ActivityCardProps> = ({
           {/* Header with type and date */}
           <View style={styles.header}>
             <View style={styles.typeContainer}>
-              <MaterialCommunityIcons
+              <Ionicons
                 name={getActivityIcon() as any}
                 size={16}
                 color={getActivityColor()}

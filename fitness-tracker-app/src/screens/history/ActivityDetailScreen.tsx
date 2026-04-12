@@ -187,29 +187,58 @@ export const ActivityDetailScreen: React.FC<any> = ({
     return Colors.primary;
   };
 
-  // Show error state if activity not found after loading
-  if (isReady && !activity) {
+  // Show loading state while data is being fetched
+  if (!isReady) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
-          </TouchableOpacity>
-          <Text variant="large" weight="bold" color={Colors.textPrimary}>
-            Activity Details
-          </Text>
-          <View style={styles.headerSpacer} />
+      <View style={styles.fullScreenContainer}>
+        <View style={styles.container}>
+          <View style={styles.statusBarSpacer} />
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+            </TouchableOpacity>
+            <Text variant="large" weight="bold" color={Colors.textPrimary}>
+              Activity Details
+            </Text>
+            <View style={styles.headerSpacer} />
+          </View>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
         </View>
-        <View style={styles.loadingContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={Colors.textSecondary} />
-          <Text variant="regular" color={Colors.textSecondary} style={{ marginTop: Spacing.md }}>
-            Activity not found
-          </Text>
+      </View>
+    );
+  }
+
+  // Show error state if activity not found after loading
+  if (!activity) {
+    return (
+      <View style={styles.fullScreenContainer}>
+        <View style={styles.container}>
+          <View style={styles.statusBarSpacer} />
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+            </TouchableOpacity>
+            <Text variant="large" weight="bold" color={Colors.textPrimary}>
+              Activity Details
+            </Text>
+            <View style={styles.headerSpacer} />
+          </View>
+          <View style={styles.loadingContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color={Colors.textSecondary} />
+            <Text variant="regular" color={Colors.textSecondary} style={{ marginTop: Spacing.md }}>
+              Activity not found
+            </Text>
+          </View>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -250,7 +279,7 @@ export const ActivityDetailScreen: React.FC<any> = ({
             <View style={styles.titleSection}>
               <View style={styles.typeContainer}>
                 <View style={[styles.typeIcon, { backgroundColor: getActivityColor() + '20' }]}>
-                  <MaterialCommunityIcons
+                  <Ionicons
                     name={getActivityIcon() as any}
                     size={32}
                     color={getActivityColor()}
