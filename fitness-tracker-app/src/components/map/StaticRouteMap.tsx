@@ -2,10 +2,12 @@
  * StaticRouteMap
  * Displays a completed activity route with high-resolution polyline,
  * distance markers, pace heatmap, and route statistics
+ * 
+ * Performance optimized: lazy-loads map after navigation transition completes
  */
 
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator, InteractionManager } from 'react-native';
 import MapView, { Polyline, Marker, PROVIDER_GOOGLE, MapType as RNMapType } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../common/Text';
@@ -23,7 +25,7 @@ interface StaticRouteMapProps {
   averagePace?: number;
 }
 
-export const StaticRouteMap: React.FC<StaticRouteMapProps> = ({
+const StaticRouteMapComponent: React.FC<StaticRouteMapProps> = ({
   route,
   units = 'metric',
   showDistanceMarkers = true,
@@ -32,6 +34,16 @@ export const StaticRouteMap: React.FC<StaticRouteMapProps> = ({
 }) => {
   const { settings } = useSettings();
   const mapRef = React.useRef<MapView>(null);
+  const [mapReady, setMapReady] = useState(false);
+  const [shouldRenderMap, setShouldRenderMap] = useState(false);
+
+  // Defer map rendering until after navigation animation completes
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setShouldRenderMap(true);
+    });
+    return () => task.cancel();
+  }, []);
 
   // Convert our MapType to React Native Maps MapType
   const getMapType = (): RNMapType => {
@@ -46,8 +58,8 @@ export const StaticRouteMap: React.FC<StaticRouteMapProps> = ({
     }
   };
 
-  // Calculate map region to fit the entire route with minimal padding (zoomed in)
-  const getMapRegion = () => {
+  // Memoize map region calculation
+  const mapRegion = useMemo(() => {
     if (route.length === 0) {
       return {
         latitude: 0,
@@ -57,33 +69,39 @@ export const StaticRouteMap: React.FC<StaticRouteMapProps> = ({
       };
     }
 
-    const latitudes = route.map(p => p.latitude);
-    const longitudes = route.map(p => p.longitude);
+    let minLat = route[0].latitude;
+    let maxLat = route[0].latitude;
+    let minLng = route[0].longitude;
+    let maxLng = route[0].longitude;
 
-    const minLat = Math.min(...latitudes);
-    const maxLat = Math.max(...latitudes);
-    const minLng = Math.min(...longitudes);
-    const maxLng = Math.max(...longitudes);
+    for (let i = 1; i < route.length; i++) {
+      const lat = route[i].latitude;
+      const lng = route[i].longitude;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+      if (lng < minLng) minLng = lng;
+      if (lng > maxLng) maxLng = lng;
+    }
 
     const centerLat = (minLat + maxLat) / 2;
     const centerLng = (minLng + maxLng) / 2;
-    const latDelta = (maxLat - minLat) * 1.1; // Add only 10% padding for zoomed view
+    const latDelta = (maxLat - minLat) * 1.1;
     const lngDelta = (maxLng - minLng) * 1.1;
 
     return {
       latitude: centerLat,
       longitude: centerLng,
-      latitudeDelta: Math.max(latDelta, 0.005), // Minimum zoom level
+      latitudeDelta: Math.max(latDelta, 0.005),
       longitudeDelta: Math.max(lngDelta, 0.005),
     };
-  };
+  }, [route]);
 
-  // Generate distance markers along the route
-  const getDistanceMarkers = () => {
+  // Memoize distance markers
+  const distanceMarkers = useMemo(() => {
     if (!showDistanceMarkers || route.length < 2) return [];
 
     const markers: Array<{ position: RoutePoint; distance: number }> = [];
-    const markerInterval = units === 'metric' ? 1000 : 1609.34; // 1km or 1 mile in meters
+    const markerInterval = units === 'metric' ? 1000 : 1609.34;
     let accumulatedDistance = 0;
     let nextMarkerDistance = markerInterval;
 
@@ -107,54 +125,117 @@ export const StaticRouteMap: React.FC<StaticRouteMapProps> = ({
     }
 
     return markers;
-  };
+  }, [route, showDistanceMarkers, units]);
 
-  // Calculate pace for each segment for heatmap
-  const getPolylineSegments = () => {
+  // Memoize direction markers
+  const directionMarkers = useMemo(() => {
+    if (route.length < 2) return [];
+
+    const markers: Array<{ position: RoutePoint; rotation: number }> = [];
+    const arrowSpacing = 300; // Place an arrow every 300 meters
+    let accumulatedDistance = 0;
+
+    for (let i = 1; i < route.length; i++) {
+      const pt1 = route[i - 1];
+      const pt2 = route[i];
+      const segmentDistance = calculateDistance(
+        pt1.latitude,
+        pt1.longitude,
+        pt2.latitude,
+        pt2.longitude
+      );
+
+      accumulatedDistance += segmentDistance;
+
+      if (accumulatedDistance >= arrowSpacing) {
+        // Calculate bearing
+        const toRad = Math.PI / 180;
+        const toDeg = 180 / Math.PI;
+
+        const lat1 = pt1.latitude * toRad;
+        const lat2 = pt2.latitude * toRad;
+        const dLng = (pt2.longitude - pt1.longitude) * toRad;
+
+        const y = Math.sin(dLng) * Math.cos(lat2);
+        const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+        const brng = Math.atan2(y, x);
+        const bearing = (brng * toDeg + 360) % 360;
+
+        markers.push({
+          position: pt2,
+          rotation: bearing,
+        });
+
+        accumulatedDistance = 0;
+      }
+    }
+
+    return markers;
+  }, [route]);
+
+  // Memoize polyline segments — batch consecutive same-color segments
+  // to minimize the number of Polyline components on the map
+  const polylineSegments = useMemo(() => {
     if (!showPaceHeatmap || route.length < 2 || !averagePace) {
-      // Return single polyline with primary color
       return [{
         coordinates: route.map(p => ({ latitude: p.latitude, longitude: p.longitude })),
         color: Colors.primary,
       }];
     }
 
-    // Calculate pace for each segment and color accordingly
-    const segments: Array<{ coordinates: any[]; color: string }> = [];
-    
+    // First, determine the color for each segment
+    const segmentColors: string[] = [];
     for (let i = 1; i < route.length; i++) {
       const point1 = route[i - 1];
       const point2 = route[i];
-      
+
       const distance = calculateDistance(
         point1.latitude,
         point1.longitude,
         point2.latitude,
         point2.longitude
       );
-      
-      const timeDiff = (point2.timestamp - point1.timestamp) / 1000; // seconds
-      const segmentPace = distance > 0 ? (timeDiff / distance) * 1000 : averagePace; // sec/km
 
-      // Color based on pace relative to average
-      let color = Colors.primary;
+      const timeDiff = (point2.timestamp - point1.timestamp) / 1000;
+      const segmentPace = distance > 0 ? (timeDiff / distance) * 1000 : averagePace;
+
       if (segmentPace < averagePace * 0.9) {
-        color = Colors.success; // Fast (green)
+        segmentColors.push(Colors.success);
       } else if (segmentPace > averagePace * 1.1) {
-        color = Colors.warning; // Slow (amber)
+        segmentColors.push(Colors.warning);
+      } else {
+        segmentColors.push(Colors.primary);
       }
-
-      segments.push({
-        coordinates: [
-          { latitude: point1.latitude, longitude: point1.longitude },
-          { latitude: point2.latitude, longitude: point2.longitude },
-        ],
-        color,
-      });
     }
 
-    return segments;
-  };
+    // Then, batch consecutive segments with the same color into single polylines
+    const batched: Array<{ coordinates: any[]; color: string }> = [];
+    let currentColor = segmentColors[0];
+    let currentCoords = [
+      { latitude: route[0].latitude, longitude: route[0].longitude },
+      { latitude: route[1].latitude, longitude: route[1].longitude },
+    ];
+
+    for (let i = 1; i < segmentColors.length; i++) {
+      if (segmentColors[i] === currentColor) {
+        // Same color — extend the current polyline
+        currentCoords.push({ latitude: route[i + 1].latitude, longitude: route[i + 1].longitude });
+      } else {
+        // Color changed — push current batch and start new one
+        batched.push({ coordinates: currentCoords, color: currentColor });
+        currentColor = segmentColors[i];
+        // Start new batch from the last point of the previous batch (for continuity)
+        currentCoords = [
+          { latitude: route[i].latitude, longitude: route[i].longitude },
+          { latitude: route[i + 1].latitude, longitude: route[i + 1].longitude },
+        ];
+      }
+    }
+    // Push the last batch
+    batched.push({ coordinates: currentCoords, color: currentColor });
+
+    return batched;
+  }, [route, showPaceHeatmap, averagePace]);
 
   const fitToRoute = () => {
     if (mapRef.current && route.length > 0) {
@@ -163,7 +244,6 @@ export const StaticRouteMap: React.FC<StaticRouteMapProps> = ({
         longitude: p.longitude,
       }));
       
-      // Use smaller edge padding for more zoomed-in view
       mapRef.current.fitToCoordinates(coordinates, {
         edgePadding: { top: 30, right: 30, bottom: 30, left: 30 },
         animated: true,
@@ -171,31 +251,50 @@ export const StaticRouteMap: React.FC<StaticRouteMapProps> = ({
     }
   };
 
-
-
-  const distanceMarkers = getDistanceMarkers();
-  const polylineSegments = getPolylineSegments();
+  // Show a placeholder while map is loading
+  if (!shouldRenderMap) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.mapPlaceholder}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text variant="small" color={Colors.textSecondary} style={{ marginTop: Spacing.sm }}>
+            Loading map...
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
+      {!mapReady && (
+        <View style={styles.mapLoadingOverlay}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      )}
       <MapView
         key={`static-map-${settings.mapType}`}
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={styles.map}
-        initialRegion={getMapRegion()}
+        initialRegion={mapRegion}
         mapType={getMapType()}
         showsUserLocation={false}
         showsMyLocationButton={false}
         showsCompass={true}
         showsTraffic={false}
-        showsBuildings={true}
-        showsIndoors={true}
+        showsBuildings={false}
+        showsIndoors={false}
         toolbarEnabled={false}
         rotateEnabled={true}
         scrollEnabled={true}
         zoomEnabled={true}
         pitchEnabled={true}
+        loadingEnabled={true}
+        loadingIndicatorColor={Colors.primary}
+        loadingBackgroundColor="#F5F5F5"
+        onMapReady={() => setMapReady(true)}
+        liteMode={false}
       >
         {/* Route polyline(s) */}
         {polylineSegments.map((segment, index) => (
@@ -217,6 +316,7 @@ export const StaticRouteMap: React.FC<StaticRouteMapProps> = ({
               longitude: route[0].longitude,
             }}
             anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
           >
             <View style={styles.startMarker}>
               <Ionicons name="flag" size={16} color="#fff" />
@@ -232,6 +332,7 @@ export const StaticRouteMap: React.FC<StaticRouteMapProps> = ({
               longitude: route[route.length - 1].longitude,
             }}
             anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
           >
             <View style={styles.endMarker}>
               <Ionicons name="checkmark" size={16} color="#fff" />
@@ -248,6 +349,7 @@ export const StaticRouteMap: React.FC<StaticRouteMapProps> = ({
               longitude: marker.position.longitude,
             }}
             anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
           >
             <View style={styles.distanceMarker}>
               <Text variant="extraSmall" weight="semiBold" color={Colors.surface}>
@@ -256,17 +358,37 @@ export const StaticRouteMap: React.FC<StaticRouteMapProps> = ({
             </View>
           </Marker>
         ))}
+
+        {/* Direction markers */}
+        {directionMarkers.map((marker, index) => (
+          <Marker
+            key={`dir-${index}`}
+            coordinate={{
+              latitude: marker.position.latitude,
+              longitude: marker.position.longitude,
+            }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
+            flat={true}
+          >
+            <View style={[styles.directionMarker, { transform: [{ rotate: `${marker.rotation}deg` }] }]}>
+              <Ionicons name="chevron-up" size={14} color="#FFFFFF" style={{ marginTop: -1 }} />
+            </View>
+          </Marker>
+        ))}
       </MapView>
 
       {/* Map controls */}
-      <View style={styles.controls}>
-        <TouchableOpacity style={styles.controlButton} onPress={fitToRoute}>
-          <Ionicons name="expand" size={20} color={Colors.primary} />
-        </TouchableOpacity>
-      </View>
+      {mapReady && (
+        <View style={styles.controls}>
+          <TouchableOpacity style={styles.controlButton} onPress={fitToRoute}>
+            <Ionicons name="expand" size={20} color={Colors.primary} />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Pace heatmap legend */}
-      {showPaceHeatmap && (
+      {showPaceHeatmap && mapReady && (
         <View style={styles.legend}>
           <View style={styles.legendItem}>
             <View style={[styles.legendColor, { backgroundColor: Colors.success }]} />
@@ -286,6 +408,8 @@ export const StaticRouteMap: React.FC<StaticRouteMapProps> = ({
   );
 };
 
+export const StaticRouteMap = React.memo(StaticRouteMapComponent);
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -295,6 +419,22 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: '100%',
+  },
+  mapPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#F0F0F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: BorderRadius.large,
+  },
+  mapLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#F0F0F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+    borderRadius: BorderRadius.large,
   },
   startMarker: {
     width: 32,
@@ -324,6 +464,17 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: BorderRadius.small,
     borderWidth: 2,
+    borderColor: '#fff',
+    ...Shadows.small,
+  },
+  directionMarker: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
     borderColor: '#fff',
     ...Shadows.small,
   },
