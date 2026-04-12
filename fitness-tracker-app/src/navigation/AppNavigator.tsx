@@ -22,6 +22,8 @@ import { Colors } from '../constants/theme';
 
 const Tab = createBottomTabNavigator();
 const HistoryStack = createStackNavigator();
+const ProfileStack = createStackNavigator();
+const GoalsStack = createStackNavigator();
 const SettingsStack = createStackNavigator();
 
 // History Stack Navigator
@@ -42,6 +44,41 @@ const HistoryStackNavigator = () => {
         component={ActivityDetailScreen}
       />
     </HistoryStack.Navigator>
+  );
+};
+
+// Profile Stack Navigator
+const ProfileStackNavigator = () => {
+  return (
+    <ProfileStack.Navigator
+      screenOptions={{
+        headerShown: false,
+        gestureEnabled: true,
+      }}
+    >
+      <ProfileStack.Screen 
+        name="ProfileMain" 
+        component={ProfileScreen}
+      />
+      <ProfileStack.Screen 
+        name="ActivityDetail" 
+        component={ActivityDetailScreen}
+      />
+    </ProfileStack.Navigator>
+  );
+};
+
+// Goals Stack Navigator
+const GoalsStackNavigator = () => {
+  return (
+    <GoalsStack.Navigator
+      screenOptions={{
+        headerShown: false,
+        gestureEnabled: true,
+      }}
+    >
+      <GoalsStack.Screen name="GoalsMain" component={GoalsScreen} />
+    </GoalsStack.Navigator>
   );
 };
 
@@ -101,7 +138,7 @@ const AppNavigatorComponent: React.FC = () => {
         />
         <Tab.Screen
           name="Goals"
-          component={GoalsScreen}
+          component={GoalsStackNavigator}
           options={{
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="flag" size={size} color={color} />
@@ -110,7 +147,7 @@ const AppNavigatorComponent: React.FC = () => {
         />
         <Tab.Screen
           name="Profile"
-          component={ProfileScreen}
+          component={ProfileStackNavigator}
           options={{
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="person" size={size} color={color} />

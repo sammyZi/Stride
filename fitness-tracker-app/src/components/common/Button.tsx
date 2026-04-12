@@ -123,6 +123,7 @@ export const Button: React.FC<ButtonProps> = ({
               variant={size === 'small' ? 'small' : 'regular'}
               weight="semiBold"
               color={getTextColor()}
+              align="center"
             >
               {title}
             </Text>
@@ -183,6 +184,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
   },
   iconLeft: {
     marginRight: Spacing.sm,
