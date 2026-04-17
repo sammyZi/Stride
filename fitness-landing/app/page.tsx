@@ -6,6 +6,7 @@ import {
   TrendingUp,
   Users,
   Smartphone,
+  MapPin,
   Download,
   CheckCircle,
   Menu,
@@ -17,6 +18,8 @@ import { useEffect, useState } from 'react'
 export default function Home() {
   const [activeSection, setActiveSection] = useState('home')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [hoveredActivityImg, setHoveredActivityImg] = useState<number | null>(null)
+  const [hoveredProfileImg, setHoveredProfileImg] = useState<number | null>(null)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -232,8 +235,8 @@ export default function Home() {
                     <div className="absolute -inset-1 bg-blue-400/30 rounded-[2rem] sm:rounded-[2.5rem] blur"></div>
                     <div className="relative bg-white rounded-[2rem] sm:rounded-[2.5rem] p-1 sm:p-1.5 shadow-2xl">
                       <Image
-                        src="/walking_hero.png"
-                        alt="Walking tracking"
+                        src="/new_ss/activity_detail.jpeg"
+                        alt="Activity detail tracking"
                         width={180}
                         height={360}
                         className="rounded-[1.5rem] sm:rounded-[2rem] w-28 sm:w-36 md:w-44 h-auto object-cover"
@@ -247,7 +250,7 @@ export default function Home() {
                   <div className="absolute -inset-2 bg-purple-400/40 rounded-[2.5rem] sm:rounded-[3rem] blur animate-pulse-slow"></div>
                   <div className="relative bg-white rounded-[2.5rem] sm:rounded-[3rem] p-1.5 sm:p-2 shadow-2xl">
                     <Image
-                      src="/app_ss/activity.jpeg"
+                      src="/new_ss/activity.jpeg"
                       alt="Stride App"
                       width={240}
                       height={480}
@@ -262,8 +265,8 @@ export default function Home() {
                     <div className="absolute -inset-1 bg-pink-400/30 rounded-[2rem] sm:rounded-[2.5rem] blur"></div>
                     <div className="relative bg-white rounded-[2rem] sm:rounded-[3rem] p-1 sm:p-1.5 shadow-2xl">
                       <Image
-                        src="/running_hero.png"
-                        alt="Running tracking"
+                        src="/new_ss/activity_detail (2).jpeg"
+                        alt="Activity detail view"
                         width={180}
                         height={360}
                         className="rounded-[1.5rem] sm:rounded-[2rem] w-28 sm:w-36 md:w-44 h-auto object-cover"
@@ -296,17 +299,12 @@ export default function Home() {
 
           <div className="space-y-24">
             {/* Activity Tracking - Image Left */}
-            <div className="flex flex-col md:flex-row items-center gap-12">
-              <div className="md:w-1/3">
-                <div className="relative w-64 h-[500px] mx-auto border-2 border-blue-600/30 rounded-3xl">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-3xl"></div>
-                  <Image
-                    src="/app_ss/activity.jpeg"
-                    alt="Activity Tracking Screen"
-                    width={256}
-                    height={500}
-                    className="relative z-10 object-contain w-full h-full rounded-3xl shadow-2xl"
-                  />
+            <div className="flex flex-col md:flex-row items-center gap-12 group">
+              <div className="md:w-1/3 flex justify-center w-full">
+                <div className="relative z-30 transform group-hover:scale-105 group-hover:-translate-y-4 transition-all duration-500 w-48 sm:w-64 h-auto">
+                   <div className="border-2 border-blue-500/40 rounded-[1.5rem] sm:rounded-[2rem] bg-white p-1 sm:p-1.5 shadow-2xl relative">
+                     <Image src="/new_ss/activity.jpeg" alt="Activity Tracking Screen" width={256} height={500} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                   </div>
                 </div>
               </div>
               <div className="md:w-2/3">
@@ -322,18 +320,92 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Activity Details - Image Fan Right */}
+            <div className="flex flex-col md:flex-row-reverse items-center gap-12 lg:gap-8">
+              <div className="md:w-1/2 w-full relative min-h-[400px] sm:min-h-[500px] flex justify-center items-center mt-4 md:mt-0">
+                {/* Detail 1 - Left */}
+                <div
+                  className={`absolute left-8 sm:left-16 lg:left-12 w-44 sm:w-56 h-auto cursor-pointer transition-all duration-500 ease-out
+                    ${hoveredActivityImg === 0
+                      ? 'z-50 opacity-100'
+                      : hoveredActivityImg !== null
+                        ? 'z-10 opacity-20 blur-[2px]'
+                        : 'z-10 opacity-90'}`}
+                  style={{
+                    transform: hoveredActivityImg === 0
+                      ? 'rotate(0deg) scale(1.1)'
+                      : hoveredActivityImg !== null
+                        ? 'rotate(-10deg) scale(0.8) translateX(-1rem)'
+                        : 'rotate(-8deg) scale(0.88)',
+                  }}
+                  onMouseEnter={() => setHoveredActivityImg(0)}
+                  onMouseLeave={() => setHoveredActivityImg(null)}
+                >
+                   <div className={`absolute -inset-4 bg-indigo-400/40 rounded-[2.5rem] sm:rounded-[3rem] blur-xl transition-opacity duration-500 ${hoveredActivityImg === 0 ? 'opacity-100' : 'opacity-0'}`}></div>
+                   <div className={`relative rounded-[1.5rem] sm:rounded-[2rem] bg-white shadow-lg transition-all duration-500 ${hoveredActivityImg === 0 ? 'border-2 border-indigo-500/60 p-1.5 shadow-2xl' : 'border border-indigo-500/20 p-1'}`}>
+                     <Image src="/new_ss/activity_detail.jpeg" alt="Activity detail" width={224} height={440} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                   </div>
+                </div>
+
+                {/* Detail 2 - Right */}
+                <div
+                  className={`absolute right-8 sm:right-16 lg:right-12 w-44 sm:w-56 h-auto cursor-pointer transition-all duration-500 ease-out
+                    ${hoveredActivityImg === 1
+                      ? 'z-50 opacity-100'
+                      : hoveredActivityImg !== null
+                        ? 'z-10 opacity-20 blur-[2px]'
+                        : 'z-10 opacity-90'}`}
+                  style={{
+                    transform: hoveredActivityImg === 1
+                      ? 'rotate(0deg) scale(1.1)'
+                      : hoveredActivityImg !== null
+                        ? 'rotate(10deg) scale(0.8) translateX(1rem)'
+                        : 'rotate(8deg) scale(0.88)',
+                  }}
+                  onMouseEnter={() => setHoveredActivityImg(1)}
+                  onMouseLeave={() => setHoveredActivityImg(null)}
+                >
+                   <div className={`absolute -inset-4 bg-indigo-400/40 rounded-[2.5rem] sm:rounded-[3rem] blur-xl transition-opacity duration-500 ${hoveredActivityImg === 1 ? 'opacity-100' : 'opacity-0'}`}></div>
+                   <div className={`relative rounded-[1.5rem] sm:rounded-[2rem] bg-white shadow-lg transition-all duration-500 ${hoveredActivityImg === 1 ? 'border-2 border-indigo-500/60 p-1.5 shadow-2xl' : 'border border-indigo-500/20 p-1'}`}>
+                     <Image src="/new_ss/activity_detail (2).jpeg" alt="Activity detail 2" width={224} height={440} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                   </div>
+                </div>
+              </div>
+              <div className="md:w-1/2">
+                <div className="flex items-center mb-6">
+                  <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
+                    <MapPin className="h-8 w-8 text-white" />
+                  </div>
+                  <h3 className="text-3xl font-bold text-gray-900">Activity Details</h3>
+                </div>
+                <p className="text-lg text-gray-600 leading-relaxed mb-6">
+                  Dive deep into every workout with comprehensive activity breakdowns. View your route maps, split times, and performance metrics all in one place.
+                </p>
+                <div className="space-y-4">
+                  <div className="flex items-center text-gray-700">
+                    <div className="w-2 h-2 rounded-full bg-indigo-500 mr-3"></div>
+                    <span className="font-medium">GPS route visualization</span>
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <div className="w-2 h-2 rounded-full bg-indigo-500 mr-3"></div>
+                    <span className="font-medium">Split-by-split performance</span>
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <div className="w-2 h-2 rounded-full bg-indigo-500 mr-3"></div>
+                    <span className="font-medium">Detailed pace analysis</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Goals - Image Right */}
-            <div className="flex flex-col md:flex-row-reverse items-center gap-12">
-              <div className="md:w-1/3">
-                <div className="relative w-64 h-[500px] mx-auto border-2 border-green-600/30 rounded-3xl">
-                  <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-emerald-100 rounded-3xl"></div>
-                  <Image
-                    src="/app_ss/goals.jpeg"
-                    alt="Goals Screen"
-                    width={256}
-                    height={500}
-                    className="relative z-10 object-contain w-full h-full rounded-3xl shadow-2xl"
-                  />
+            <div className="flex flex-col md:flex-row-reverse items-center gap-12 group">
+              <div className="md:w-1/3 flex justify-center w-full">
+                <div className="relative z-30 transform group-hover:scale-105 group-hover:-translate-y-4 transition-all duration-500 w-48 sm:w-64 h-auto">
+                   <div className="absolute -inset-4 bg-green-400/30 rounded-[2.5rem] sm:rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                   <div className="border-2 border-green-500/40 rounded-[1.5rem] sm:rounded-[2rem] bg-white p-1 sm:p-1.5 shadow-2xl relative">
+                     <Image src="/new_ss/goals.jpeg" alt="Goals Screen" width={256} height={500} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                   </div>
                 </div>
               </div>
               <div className="md:w-2/3">
@@ -350,17 +422,13 @@ export default function Home() {
             </div>
 
             {/* History - Image Left */}
-            <div className="flex flex-col md:flex-row items-center gap-12">
-              <div className="md:w-1/3">
-                <div className="relative w-64 h-[500px] mx-auto border-2 border-purple-600/30 rounded-3xl">
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl"></div>
-                  <Image
-                    src="/app_ss/history.jpeg"
-                    alt="History Screen"
-                    width={256}
-                    height={500}
-                    className="relative z-10 object-contain w-full h-full rounded-3xl shadow-2xl"
-                  />
+            <div className="flex flex-col md:flex-row items-center gap-12 group">
+              <div className="md:w-1/3 flex justify-center w-full">
+                <div className="relative z-30 transform group-hover:scale-105 group-hover:-translate-y-4 transition-all duration-500 w-48 sm:w-64 h-auto">
+                   <div className="absolute -inset-4 bg-purple-400/30 rounded-[2.5rem] sm:rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                   <div className="border-2 border-purple-500/40 rounded-[1.5rem] sm:rounded-[2rem] bg-white p-1 sm:p-1.5 shadow-2xl relative">
+                     <Image src="/new_ss/history.jpeg" alt="History Screen" width={256} height={500} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                   </div>
                 </div>
               </div>
               <div className="md:w-2/3">
@@ -376,45 +444,109 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Profile - Image Right */}
-            <div className="flex flex-col md:flex-row-reverse items-center gap-12">
-              <div className="md:w-1/3">
-                <div className="relative w-64 h-[500px] mx-auto border-2 border-orange-600/30 rounded-3xl">
-                  <div className="absolute inset-0 bg-gradient-to-br from-orange-100 to-red-100 rounded-3xl"></div>
-                  <Image
-                    src="/app_ss/profile.jpeg"
-                    alt="Profile Screen"
-                    width={256}
-                    height={500}
-                    className="relative z-10 object-contain w-full h-full rounded-3xl shadow-2xl"
-                  />
+            {/* Profile - Image Fan Cluster */}
+            <div className="flex flex-col md:flex-row-reverse items-center gap-12 lg:gap-8">
+              <div className="md:w-1/2 w-full relative min-h-[400px] sm:min-h-[500px] flex justify-center items-center mt-4 md:mt-0">
+                {/* Image 3 - Left background */}
+                <div
+                  className={`absolute left-4 sm:left-12 lg:left-4 w-40 sm:w-56 h-auto cursor-pointer transition-all duration-500 ease-out
+                    ${hoveredProfileImg === 0
+                      ? 'z-50 opacity-100'
+                      : hoveredProfileImg !== null
+                        ? 'z-10 opacity-20 blur-[2px]'
+                        : 'z-10 opacity-80'}`}
+                  style={{
+                    transform: hoveredProfileImg === 0
+                      ? 'rotate(0deg) scale(1.15)'
+                      : hoveredProfileImg !== null
+                        ? 'rotate(-15deg) scale(0.65) translateX(-1rem)'
+                        : 'rotate(-12deg) scale(0.8)',
+                  }}
+                  onMouseEnter={() => setHoveredProfileImg(0)}
+                  onMouseLeave={() => setHoveredProfileImg(null)}
+                >
+                   <div className={`absolute -inset-4 bg-orange-400/40 rounded-[2.5rem] sm:rounded-[3rem] blur-xl transition-opacity duration-500 ${hoveredProfileImg === 0 ? 'opacity-100' : 'opacity-0'}`}></div>
+                   <div className={`relative rounded-[1.5rem] sm:rounded-[2rem] bg-white shadow-lg transition-all duration-500 ${hoveredProfileImg === 0 ? 'border-2 border-orange-500/40 p-1.5 shadow-2xl' : 'border border-orange-500/20 p-1'}`}>
+                     <Image src="/new_ss/profile_stats (3).jpeg" alt="Stats screen 3" width={224} height={440} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                   </div>
+                </div>
+
+                {/* Image 2 - Right background */}
+                <div
+                  className={`absolute right-4 sm:right-12 lg:right-4 w-40 sm:w-56 h-auto cursor-pointer transition-all duration-500 ease-out
+                    ${hoveredProfileImg === 2
+                      ? 'z-50 opacity-100'
+                      : hoveredProfileImg !== null
+                        ? 'z-20 opacity-20 blur-[2px]'
+                        : 'z-20 opacity-80'}`}
+                  style={{
+                    transform: hoveredProfileImg === 2
+                      ? 'rotate(0deg) scale(1.15)'
+                      : hoveredProfileImg !== null
+                        ? 'rotate(15deg) scale(0.65) translateX(1rem)'
+                        : 'rotate(12deg) scale(0.8)',
+                  }}
+                  onMouseEnter={() => setHoveredProfileImg(2)}
+                  onMouseLeave={() => setHoveredProfileImg(null)}
+                >
+                   <div className={`absolute -inset-4 bg-orange-400/40 rounded-[2.5rem] sm:rounded-[3rem] blur-xl transition-opacity duration-500 ${hoveredProfileImg === 2 ? 'opacity-100' : 'opacity-0'}`}></div>
+                   <div className={`relative rounded-[1.5rem] sm:rounded-[2rem] bg-white shadow-lg transition-all duration-500 ${hoveredProfileImg === 2 ? 'border-2 border-orange-500/40 p-1.5 shadow-2xl' : 'border border-orange-500/20 p-1'}`}>
+                     <Image src="/new_ss/profile_stats (2).jpeg" alt="Stats screen 2" width={224} height={440} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                   </div>
+                </div>
+
+                {/* Image 1 - Main Center */}
+                <div
+                  className={`relative w-48 sm:w-64 h-auto cursor-pointer transition-all duration-500 ease-out
+                    ${hoveredProfileImg === 1
+                      ? 'z-50 scale-110'
+                      : hoveredProfileImg !== null
+                        ? 'z-30 opacity-20 scale-90 blur-[2px]'
+                        : 'z-30'}`}
+                  onMouseEnter={() => setHoveredProfileImg(1)}
+                  onMouseLeave={() => setHoveredProfileImg(null)}
+                >
+                   <div className={`absolute -inset-4 bg-orange-400/30 rounded-[2.5rem] sm:rounded-[3rem] blur-xl transition-opacity duration-500 ${hoveredProfileImg === 1 ? 'opacity-100' : 'opacity-0'}`}></div>
+                   <div className="border-2 border-orange-500/40 rounded-[1.5rem] sm:rounded-[2rem] bg-white p-1 sm:p-1.5 shadow-2xl relative">
+                     <Image src="/new_ss/profile_stats.jpeg" alt="Profile main screen" width={256} height={500} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                   </div>
                 </div>
               </div>
-              <div className="md:w-2/3">
+              <div className="md:w-1/2">
                 <div className="flex items-center mb-6">
                   <div className="bg-gradient-to-br from-orange-500 to-orange-600 w-16 h-16 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
                     <Users className="h-8 w-8 text-white" />
                   </div>
-                  <h3 className="text-3xl font-bold text-gray-900">Personal Profile</h3>
+                  <h3 className="text-3xl font-bold text-gray-900">Comprehensive Profile & Stats</h3>
                 </div>
-                <p className="text-lg text-gray-600 leading-relaxed">
-                  Customize your profile with personal stats, achievements, and preferences. Track your overall progress and milestones while celebrating your fitness accomplishments.
+                <p className="text-lg text-gray-600 leading-relaxed mb-6">
+                  Customize your profile with personal stats, achievements, and preferences. Track your overall progress and milestones while celebrating your fitness accomplishments with beautifully crafted charts and dynamic metrics.
                 </p>
+                <div className="space-y-4">
+                  <div className="flex items-center text-gray-700">
+                    <div className="w-2 h-2 rounded-full bg-orange-500 mr-3"></div>
+                    <span className="font-medium">In-depth statistical breakdown</span>
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <div className="w-2 h-2 rounded-full bg-orange-500 mr-3"></div>
+                    <span className="font-medium">Visual trend tracking</span>
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <div className="w-2 h-2 rounded-full bg-orange-500 mr-3"></div>
+                    <span className="font-medium">Personal bests and milestones</span>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Settings - Image Left */}
-            <div className="flex flex-col md:flex-row items-center gap-12">
-              <div className="md:w-1/3">
-                <div className="relative w-64 h-[500px] mx-auto border-2 border-cyan-600/30 rounded-3xl">
-                  <div className="absolute inset-0 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-3xl"></div>
-                  <Image
-                    src="/app_ss/settings.jpeg"
-                    alt="Settings Screen"
-                    width={256}
-                    height={500}
-                    className="relative z-10 object-contain w-full h-full rounded-3xl shadow-2xl"
-                  />
+            <div className="flex flex-col md:flex-row items-center gap-12 group mt-20">
+              <div className="md:w-1/3 flex justify-center w-full">
+                <div className="relative z-30 transform group-hover:scale-105 group-hover:-translate-y-4 transition-all duration-500 w-48 sm:w-64 h-auto">
+                   <div className="absolute -inset-4 bg-cyan-400/30 rounded-[2.5rem] sm:rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                   <div className="border-2 border-cyan-500/40 rounded-[1.5rem] sm:rounded-[2rem] bg-white p-1 sm:p-1.5 shadow-2xl relative">
+                     <Image src="/app_ss/settings.jpeg" alt="Settings Screen" width={256} height={500} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                   </div>
                 </div>
               </div>
               <div className="md:w-2/3">
