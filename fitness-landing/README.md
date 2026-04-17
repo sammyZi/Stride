@@ -1,6 +1,6 @@
-# FitTracker Landing Page
+# Stride Landing Page
 
-A modern, responsive landing page built with Next.js and Tailwind CSS for the FitTracker fitness app.
+A modern, responsive landing page built with Next.js and Tailwind CSS for the Stride fitness app.
 
 ## Features
 

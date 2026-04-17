@@ -5,7 +5,7 @@ import './globals.css'
 const robotoMono = Roboto_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'FitTracker - Your Personal Fitness Companion',
+  title: 'Stride - Your Personal Fitness Companion',
   description: 'Track your workouts, monitor progress, and achieve your fitness goals with our comprehensive fitness tracking app.',
   icons: {
     icon: '/icon.png',

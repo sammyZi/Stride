@@ -12,7 +12,7 @@ export default function GuidePage() {
             number: 1,
             icon: Download,
             title: 'Download the App',
-            description: 'Get FitTracker from Google Play Store or Apple App Store. The app is free to download with no ads or subscriptions.',
+            description: 'Get Stride from Google Play Store or Apple App Store. The app is free to download with no ads or subscriptions.',
             color: 'from-blue-500 to-blue-600'
         },
         {
@@ -48,7 +48,7 @@ export default function GuidePage() {
             icon: '🔋',
             title: 'Battery Optimization',
             description: 'Prevent the app from being closed during workouts',
-            action: 'Disable battery optimization for FitTracker'
+            action: 'Disable battery optimization for Stride'
         },
         {
             icon: '💾',
@@ -59,7 +59,7 @@ export default function GuidePage() {
     ]
 
     const batterySteps = [
-        'Open Settings → Apps → FitTracker',
+        'Open Settings → Apps → Stride',
         'Tap on Battery → Select "Unrestricted"',
         'Enable "Allow background activity"',
         'Lock app in Recent Apps (tap 3-dot menu)'
@@ -91,7 +91,7 @@ export default function GuidePage() {
                         <Shield className="h-10 w-10 text-white" />
                     </div>
                     <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                        Get Started with FitTracker
+                        Get Started with Stride
                     </h2>
                     <p className="text-lg text-gray-600 max-w-2xl mx-auto">
                         Follow this comprehensive guide to install the app and set up permissions for the best tracking experience.
@@ -220,22 +220,22 @@ export default function GuidePage() {
                 <div className="text-center bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-12 shadow-lg border border-blue-100">
                     <h3 className="text-2xl font-bold text-gray-900 mb-4">Ready to Start Tracking?</h3>
                     <p className="text-gray-700 mb-8 max-w-2xl mx-auto">
-                        Download FitTracker now and begin your fitness journey with confidence.
+                        Download Stride now and begin your fitness journey with confidence.
                     </p>
-                    <button
-                        onClick={() => router.push('/#download')}
+                    <a
+                        href="https://github.com/sammyZi/Stride/releases/download/apk/app-release.apk"
                         className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-10 py-4 rounded-full text-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 shadow-xl inline-flex items-center space-x-2"
                     >
                         <Download className="h-5 w-5" />
                         <span>Download Now</span>
-                    </button>
+                    </a>
                 </div>
             </main>
 
             {/* Footer */}
             <footer className="bg-gray-900 text-white py-8 mt-20">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <p className="text-gray-400">© 2024 FitTracker. All rights reserved.</p>
+                    <p className="text-gray-400">© 2026 Stride. All rights reserved.</p>
                 </div>
             </footer>
         </div>

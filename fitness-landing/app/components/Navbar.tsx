@@ -40,7 +40,7 @@ export default function Navbar() {
         <div className="flex items-center space-x-8">
           <div className="flex items-center space-x-2">
             <Activity className="h-6 w-6 text-primary-600" />
-            <span className="text-lg font-bold text-gray-900">FitTracker</span>
+            <span className="text-lg font-bold text-gray-900">Stride</span>
           </div>
           <div className="hidden md:flex space-x-6">
             <button
