@@ -20,7 +20,7 @@ export default function Home() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ['home', 'features', 'download', 'contact']
+      const sections = ['home', 'features', 'contact']
       const scrollPosition = window.scrollY + 200
 
       for (const sectionId of sections) {
@@ -76,15 +76,7 @@ export default function Home() {
               >
                 Features
               </button>
-              <button
-                onClick={() => scrollToSection('download')}
-                className={`text-sm font-semibold transition-colors duration-500 ease-in-out relative ${activeSection === 'download'
-                  ? 'text-blue-600'
-                  : 'text-gray-900 hover:text-blue-600'
-                  }`}
-              >
-                Download
-              </button>
+
               <button
                 onClick={() => scrollToSection('contact')}
                 className={`text-sm font-semibold transition-colors duration-500 ease-in-out relative ${activeSection === 'contact'
@@ -133,15 +125,7 @@ export default function Home() {
               >
                 Features
               </button>
-              <button
-                onClick={() => scrollToSection('download')}
-                className={`px-6 py-3 text-left text-sm font-semibold transition-colors ${activeSection === 'download'
-                  ? 'text-blue-600 bg-blue-50'
-                  : 'text-gray-900 hover:bg-gray-50'
-                  }`}
-              >
-                Download
-              </button>
+
               <button
                 onClick={() => scrollToSection('contact')}
                 className={`px-6 py-3 text-left text-sm font-semibold transition-colors ${activeSection === 'contact'
@@ -449,70 +433,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-20 bg-primary-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="text-4xl font-bold mb-2">50K+</div>
-              <div className="text-primary-100">Active Users</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">1M+</div>
-              <div className="text-primary-100">Workouts Tracked</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">4.8★</div>
-              <div className="text-primary-100">App Store Rating</div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Download Section */}
-      <section id="download" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Ready to Start Your Fitness Journey?
-          </h2>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Download FitTracker today and join thousands of users who have transformed
-            their fitness routines.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <div className="bg-black text-white px-6 py-3 rounded-lg flex items-center space-x-3 hover:bg-gray-800 transition-colors cursor-pointer">
-              <Smartphone className="h-6 w-6" />
-              <div className="text-left">
-                <div className="text-xs">Download on the</div>
-                <div className="text-lg font-semibold">App Store</div>
-              </div>
-            </div>
-            <div className="bg-black text-white px-6 py-3 rounded-lg flex items-center space-x-3 hover:bg-gray-800 transition-colors cursor-pointer">
-              <Smartphone className="h-6 w-6" />
-              <div className="text-left">
-                <div className="text-xs">Get it on</div>
-                <div className="text-lg font-semibold">Google Play</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="h-6 w-6 text-green-600" />
-              <span className="text-gray-700">Free to download</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="h-6 w-6 text-green-600" />
-              <span className="text-gray-700">No ads or subscriptions</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="h-6 w-6 text-green-600" />
-              <span className="text-gray-700">Works offline</span>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Footer */}
       <footer id="contact" className="bg-gray-900 text-white py-12">
