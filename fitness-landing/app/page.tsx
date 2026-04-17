@@ -53,9 +53,9 @@ export default function Home() {
           <div className="flex items-center justify-between md:space-x-8">
             <div className="flex items-center space-x-2">
               <Activity className="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
-              <span className="text-base md:text-lg font-bold text-gray-900">FitTracker</span>
+              <span className="text-base md:text-lg font-bold text-gray-900">Stride</span>
             </div>
-            
+
             {/* Desktop Navigation */}
             <div className="hidden md:flex space-x-6 relative">
               <button
@@ -192,10 +192,10 @@ export default function Home() {
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start px-4 sm:px-0">
-                <button className="px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-white bg-purple-600 active:bg-purple-700 sm:hover:bg-purple-500 transition-all duration-300 sm:hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base">
+                <a href="https://github.com/sammyZi/Stride/releases/download/apk/app-release.apk" className="px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-white bg-purple-600 active:bg-purple-700 sm:hover:bg-purple-500 transition-all duration-300 sm:hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base">
                   <Download className="h-4 w-4 sm:h-5 sm:w-5" />
                   Start Tracking Free
-                </button>
+                </a>
                 <a href="/guide" className="w-full sm:w-auto">
                   <button className="w-full px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-gray-700 border-2 border-gray-300 active:border-purple-400 sm:hover:border-purple-400 sm:hover:text-purple-600 bg-white transition-all duration-300 sm:hover:scale-105 shadow-sm text-sm sm:text-base">
                     Learn More
@@ -225,7 +225,7 @@ export default function Home() {
               <div className="relative flex justify-center items-center min-h-[280px] sm:min-h-[350px] md:min-h-[400px]">
                 {/* Glow Effect Behind Phones */}
                 <div className="absolute inset-0 bg-purple-300/20 sm:bg-purple-300/30 blur-3xl rounded-full scale-125 sm:scale-150"></div>
-                
+
                 {/* Left Phone - Hidden on mobile */}
                 <div className="hidden sm:block absolute -left-4 md:left-0 lg:-left-8 top-8 md:top-12 z-10 transform -rotate-6">
                   <div className="relative">
@@ -248,7 +248,7 @@ export default function Home() {
                   <div className="relative bg-white rounded-[2.5rem] sm:rounded-[3rem] p-1.5 sm:p-2 shadow-2xl">
                     <Image
                       src="/app_ss/activity.jpeg"
-                      alt="FitTracker App"
+                      alt="Stride App"
                       width={240}
                       height={480}
                       className="rounded-[2rem] sm:rounded-[2.5rem] w-40 sm:w-48 md:w-52 lg:w-60 h-auto object-cover"
@@ -441,10 +441,10 @@ export default function Home() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-2 mb-4 md:mb-0">
               <Activity className="h-6 w-6" />
-              <span className="text-xl font-bold">FitTracker</span>
+              <span className="text-xl font-bold">Stride</span>
             </div>
             <div className="text-gray-400 text-center md:text-right">
-              <p>&copy; 2024 FitTracker. All rights reserved.</p>
+              <p>&copy; 2026 Stride. All rights reserved.</p>
               <p className="mt-1">Built with ❤️ for fitness enthusiasts</p>
             </div>
           </div>
