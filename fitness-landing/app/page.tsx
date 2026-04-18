@@ -305,6 +305,7 @@ export default function Home() {
             <div className="flex flex-col md:flex-row items-center gap-12 group">
               <div className="md:w-1/3 flex justify-center w-full">
                 <div className="relative z-30 transform group-hover:scale-105 group-hover:-translate-y-4 transition-all duration-500 w-48 sm:w-64 h-auto">
+                   <div className="absolute -inset-4 bg-blue-400/30 rounded-[2.5rem] sm:rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                    <div className="border-2 border-blue-500/40 rounded-[1.5rem] sm:rounded-[2rem] bg-white p-1 sm:p-1.5 shadow-2xl relative">
                      <Image src="/new_ss/activity.jpeg" alt="Activity Tracking Screen" width={256} height={500} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
                    </div>
