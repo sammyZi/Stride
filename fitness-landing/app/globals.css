@@ -450,3 +450,83 @@ html {
 .animate-phone-glow {
   animation: phone-glow 4s ease-in-out infinite;
 }
+
+/* Liquid Glass Effect */
+.liquid-glass {
+  --glass-border-width: 1.5px;
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  position: relative;
+  overflow: hidden;
+  border: none;
+  box-shadow:
+    0 0 15px rgba(147, 51, 234, 0.4),
+    0 0 30px rgba(147, 51, 234, 0.2),
+    0 4px 30px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* Animated iridescent reflective border */
+.liquid-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--glass-border-width);
+  background: conic-gradient(
+    from var(--glass-angle, 0deg),
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 10%,
+    rgba(168, 180, 255, 0.6) 20%,
+    rgba(200, 160, 255, 0.5) 30%,
+    rgba(255, 180, 220, 0.4) 40%,
+    transparent 50%,
+    transparent 60%,
+    rgba(160, 220, 255, 0.5) 70%,
+    rgba(180, 255, 230, 0.4) 80%,
+    rgba(255, 255, 255, 0.1) 90%,
+    transparent 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: glass-border-rotate 4s linear infinite;
+  pointer-events: none;
+}
+
+/* Light shimmer sweep across the surface */
+.liquid-glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.35) 45%,
+    rgba(255, 255, 255, 0.08) 55%,
+    transparent 65%
+  );
+  animation: liquid-shimmer 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes glass-border-rotate {
+  0% { --glass-angle: 0deg; }
+  100% { --glass-angle: 360deg; }
+}
+
+@keyframes liquid-shimmer {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
+@property --glass-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}

@@ -180,7 +180,7 @@ export default function Home() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                 </span>
-                <span className="text-xs sm:text-sm text-gray-700 font-medium">Now available on iOS & Android</span>
+                <span className="text-xs sm:text-sm text-gray-700 font-medium">Now available on Android</span>
               </div>
 
               {/* Liquid Morphing Text Hero Heading */}
@@ -198,7 +198,7 @@ export default function Home() {
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start px-4 sm:px-0">
-                <a href="https://github.com/sammyZi/Stride/releases/download/apk/app-release.apk" className="px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-white bg-purple-600 active:bg-purple-700 sm:hover:bg-purple-500 transition-all duration-300 sm:hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base">
+                <a href="https://github.com/sammyZi/Stride/releases/download/apk/app-release.apk" className="liquid-glass px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-white bg-purple-600 active:bg-purple-700 sm:hover:bg-purple-500 transition-all duration-300 sm:hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base">
                   <Download className="h-4 w-4 sm:h-5 sm:w-5" />
                   Start Tracking Free
                 </a>
@@ -305,10 +305,10 @@ export default function Home() {
             <div className="flex flex-col md:flex-row items-center gap-12 group">
               <div className="md:w-1/3 flex justify-center w-full">
                 <div className="relative z-30 transform group-hover:scale-105 group-hover:-translate-y-4 transition-all duration-500 w-48 sm:w-64 h-auto">
-                   <div className="absolute -inset-4 bg-blue-400/30 rounded-[2.5rem] sm:rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                   <div className="border-2 border-blue-500/40 rounded-[1.5rem] sm:rounded-[2rem] bg-white p-1 sm:p-1.5 shadow-2xl relative">
-                     <Image src="/new_ss/activity.jpeg" alt="Activity Tracking Screen" width={256} height={500} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
-                   </div>
+                  <div className="absolute -inset-4 bg-blue-400/30 rounded-[2.5rem] sm:rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="border-2 border-blue-500/40 rounded-[1.5rem] sm:rounded-[2rem] bg-white p-1 sm:p-1.5 shadow-2xl relative">
+                    <Image src="/new_ss/activity.jpeg" alt="Activity Tracking Screen" width={256} height={500} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                  </div>
                 </div>
               </div>
               <div className="md:w-2/3">
@@ -345,10 +345,10 @@ export default function Home() {
                   onMouseEnter={() => setHoveredActivityImg(0)}
                   onMouseLeave={() => setHoveredActivityImg(null)}
                 >
-                   <div className={`absolute -inset-4 bg-indigo-400/40 rounded-[2.5rem] sm:rounded-[3rem] blur-xl transition-opacity duration-500 ${hoveredActivityImg === 0 ? 'opacity-100' : 'opacity-0'}`}></div>
-                   <div className={`relative rounded-[1.5rem] sm:rounded-[2rem] bg-white shadow-lg transition-all duration-500 ${hoveredActivityImg === 0 ? 'border-2 border-indigo-500/60 p-1.5 shadow-2xl' : 'border border-indigo-500/20 p-1'}`}>
-                     <Image src="/new_ss/activity_detail.jpeg" alt="Activity detail" width={224} height={440} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
-                   </div>
+                  <div className={`absolute -inset-4 bg-indigo-400/40 rounded-[2.5rem] sm:rounded-[3rem] blur-xl transition-opacity duration-500 ${hoveredActivityImg === 0 ? 'opacity-100' : 'opacity-0'}`}></div>
+                  <div className={`relative rounded-[1.5rem] sm:rounded-[2rem] bg-white shadow-lg transition-all duration-500 ${hoveredActivityImg === 0 ? 'border-2 border-indigo-500/60 p-1.5 shadow-2xl' : 'border border-indigo-500/20 p-1'}`}>
+                    <Image src="/new_ss/activity_detail.jpeg" alt="Activity detail" width={224} height={440} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                  </div>
                 </div>
 
                 {/* Detail 2 - Right */}
@@ -369,10 +369,10 @@ export default function Home() {
                   onMouseEnter={() => setHoveredActivityImg(1)}
                   onMouseLeave={() => setHoveredActivityImg(null)}
                 >
-                   <div className={`absolute -inset-4 bg-indigo-400/40 rounded-[2.5rem] sm:rounded-[3rem] blur-xl transition-opacity duration-500 ${hoveredActivityImg === 1 ? 'opacity-100' : 'opacity-0'}`}></div>
-                   <div className={`relative rounded-[1.5rem] sm:rounded-[2rem] bg-white shadow-lg transition-all duration-500 ${hoveredActivityImg === 1 ? 'border-2 border-indigo-500/60 p-1.5 shadow-2xl' : 'border border-indigo-500/20 p-1'}`}>
-                     <Image src="/new_ss/activity_detail (2).jpeg" alt="Activity detail 2" width={224} height={440} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
-                   </div>
+                  <div className={`absolute -inset-4 bg-indigo-400/40 rounded-[2.5rem] sm:rounded-[3rem] blur-xl transition-opacity duration-500 ${hoveredActivityImg === 1 ? 'opacity-100' : 'opacity-0'}`}></div>
+                  <div className={`relative rounded-[1.5rem] sm:rounded-[2rem] bg-white shadow-lg transition-all duration-500 ${hoveredActivityImg === 1 ? 'border-2 border-indigo-500/60 p-1.5 shadow-2xl' : 'border border-indigo-500/20 p-1'}`}>
+                    <Image src="/new_ss/activity_detail (2).jpeg" alt="Activity detail 2" width={224} height={440} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                  </div>
                 </div>
               </div>
               <div className="md:w-1/2">
@@ -406,10 +406,10 @@ export default function Home() {
             <div className="flex flex-col md:flex-row-reverse items-center gap-12 group">
               <div className="md:w-1/3 flex justify-center w-full">
                 <div className="relative z-30 transform group-hover:scale-105 group-hover:-translate-y-4 transition-all duration-500 w-48 sm:w-64 h-auto">
-                   <div className="absolute -inset-4 bg-green-400/30 rounded-[2.5rem] sm:rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                   <div className="border-2 border-green-500/40 rounded-[1.5rem] sm:rounded-[2rem] bg-white p-1 sm:p-1.5 shadow-2xl relative">
-                     <Image src="/new_ss/goals.jpeg" alt="Goals Screen" width={256} height={500} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
-                   </div>
+                  <div className="absolute -inset-4 bg-green-400/30 rounded-[2.5rem] sm:rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="border-2 border-green-500/40 rounded-[1.5rem] sm:rounded-[2rem] bg-white p-1 sm:p-1.5 shadow-2xl relative">
+                    <Image src="/new_ss/goals.jpeg" alt="Goals Screen" width={256} height={500} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                  </div>
                 </div>
               </div>
               <div className="md:w-2/3">
@@ -429,10 +429,10 @@ export default function Home() {
             <div className="flex flex-col md:flex-row items-center gap-12 group">
               <div className="md:w-1/3 flex justify-center w-full">
                 <div className="relative z-30 transform group-hover:scale-105 group-hover:-translate-y-4 transition-all duration-500 w-48 sm:w-64 h-auto">
-                   <div className="absolute -inset-4 bg-purple-400/30 rounded-[2.5rem] sm:rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                   <div className="border-2 border-purple-500/40 rounded-[1.5rem] sm:rounded-[2rem] bg-white p-1 sm:p-1.5 shadow-2xl relative">
-                     <Image src="/new_ss/history.jpeg" alt="History Screen" width={256} height={500} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
-                   </div>
+                  <div className="absolute -inset-4 bg-purple-400/30 rounded-[2.5rem] sm:rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="border-2 border-purple-500/40 rounded-[1.5rem] sm:rounded-[2rem] bg-white p-1 sm:p-1.5 shadow-2xl relative">
+                    <Image src="/new_ss/history.jpeg" alt="History Screen" width={256} height={500} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                  </div>
                 </div>
               </div>
               <div className="md:w-2/3">
@@ -469,10 +469,10 @@ export default function Home() {
                   onMouseEnter={() => setHoveredProfileImg(0)}
                   onMouseLeave={() => setHoveredProfileImg(null)}
                 >
-                   <div className={`absolute -inset-4 bg-orange-400/40 rounded-[2.5rem] sm:rounded-[3rem] blur-xl transition-opacity duration-500 ${hoveredProfileImg === 0 ? 'opacity-100' : 'opacity-0'}`}></div>
-                   <div className={`relative rounded-[1.5rem] sm:rounded-[2rem] bg-white shadow-lg transition-all duration-500 ${hoveredProfileImg === 0 ? 'border-2 border-orange-500/40 p-1.5 shadow-2xl' : 'border border-orange-500/20 p-1'}`}>
-                     <Image src="/new_ss/profile_stats (3).jpeg" alt="Stats screen 3" width={224} height={440} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
-                   </div>
+                  <div className={`absolute -inset-4 bg-orange-400/40 rounded-[2.5rem] sm:rounded-[3rem] blur-xl transition-opacity duration-500 ${hoveredProfileImg === 0 ? 'opacity-100' : 'opacity-0'}`}></div>
+                  <div className={`relative rounded-[1.5rem] sm:rounded-[2rem] bg-white shadow-lg transition-all duration-500 ${hoveredProfileImg === 0 ? 'border-2 border-orange-500/40 p-1.5 shadow-2xl' : 'border border-orange-500/20 p-1'}`}>
+                    <Image src="/new_ss/profile_stats (3).jpeg" alt="Stats screen 3" width={224} height={440} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                  </div>
                 </div>
 
                 {/* Image 2 - Right background */}
@@ -493,10 +493,10 @@ export default function Home() {
                   onMouseEnter={() => setHoveredProfileImg(2)}
                   onMouseLeave={() => setHoveredProfileImg(null)}
                 >
-                   <div className={`absolute -inset-4 bg-orange-400/40 rounded-[2.5rem] sm:rounded-[3rem] blur-xl transition-opacity duration-500 ${hoveredProfileImg === 2 ? 'opacity-100' : 'opacity-0'}`}></div>
-                   <div className={`relative rounded-[1.5rem] sm:rounded-[2rem] bg-white shadow-lg transition-all duration-500 ${hoveredProfileImg === 2 ? 'border-2 border-orange-500/40 p-1.5 shadow-2xl' : 'border border-orange-500/20 p-1'}`}>
-                     <Image src="/new_ss/profile_stats (2).jpeg" alt="Stats screen 2" width={224} height={440} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
-                   </div>
+                  <div className={`absolute -inset-4 bg-orange-400/40 rounded-[2.5rem] sm:rounded-[3rem] blur-xl transition-opacity duration-500 ${hoveredProfileImg === 2 ? 'opacity-100' : 'opacity-0'}`}></div>
+                  <div className={`relative rounded-[1.5rem] sm:rounded-[2rem] bg-white shadow-lg transition-all duration-500 ${hoveredProfileImg === 2 ? 'border-2 border-orange-500/40 p-1.5 shadow-2xl' : 'border border-orange-500/20 p-1'}`}>
+                    <Image src="/new_ss/profile_stats (2).jpeg" alt="Stats screen 2" width={224} height={440} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                  </div>
                 </div>
 
                 {/* Image 1 - Main Center */}
@@ -510,10 +510,10 @@ export default function Home() {
                   onMouseEnter={() => setHoveredProfileImg(1)}
                   onMouseLeave={() => setHoveredProfileImg(null)}
                 >
-                   <div className={`absolute -inset-4 bg-orange-400/30 rounded-[2.5rem] sm:rounded-[3rem] blur-xl transition-opacity duration-500 ${hoveredProfileImg === 1 ? 'opacity-100' : 'opacity-0'}`}></div>
-                   <div className="border-2 border-orange-500/40 rounded-[1.5rem] sm:rounded-[2rem] bg-white p-1 sm:p-1.5 shadow-2xl relative">
-                     <Image src="/new_ss/profile_stats.jpeg" alt="Profile main screen" width={256} height={500} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
-                   </div>
+                  <div className={`absolute -inset-4 bg-orange-400/30 rounded-[2.5rem] sm:rounded-[3rem] blur-xl transition-opacity duration-500 ${hoveredProfileImg === 1 ? 'opacity-100' : 'opacity-0'}`}></div>
+                  <div className="border-2 border-orange-500/40 rounded-[1.5rem] sm:rounded-[2rem] bg-white p-1 sm:p-1.5 shadow-2xl relative">
+                    <Image src="/new_ss/profile_stats.jpeg" alt="Profile main screen" width={256} height={500} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                  </div>
                 </div>
               </div>
               <div className="md:w-1/2">
@@ -547,10 +547,10 @@ export default function Home() {
             <div className="flex flex-col md:flex-row items-center gap-12 group mt-20">
               <div className="md:w-1/3 flex justify-center w-full">
                 <div className="relative z-30 transform group-hover:scale-105 group-hover:-translate-y-4 transition-all duration-500 w-48 sm:w-64 h-auto">
-                   <div className="absolute -inset-4 bg-cyan-400/30 rounded-[2.5rem] sm:rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                   <div className="border-2 border-cyan-500/40 rounded-[1.5rem] sm:rounded-[2rem] bg-white p-1 sm:p-1.5 shadow-2xl relative">
-                     <Image src="/app_ss/settings.jpeg" alt="Settings Screen" width={256} height={500} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
-                   </div>
+                  <div className="absolute -inset-4 bg-cyan-400/30 rounded-[2.5rem] sm:rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="border-2 border-cyan-500/40 rounded-[1.5rem] sm:rounded-[2rem] bg-white p-1 sm:p-1.5 shadow-2xl relative">
+                    <Image src="/app_ss/settings.jpeg" alt="Settings Screen" width={256} height={500} className="object-cover rounded-[1.25rem] sm:rounded-[1.5rem] w-full h-auto" />
+                  </div>
                 </div>
               </div>
               <div className="md:w-2/3">
