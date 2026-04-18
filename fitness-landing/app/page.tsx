@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
+import { MorphingText } from '@/components/ui/liquid-text'
 
 export default function Home() {
   const [activeSection, setActiveSection] = useState('home')
@@ -182,12 +183,14 @@ export default function Home() {
                 <span className="text-xs sm:text-sm text-gray-700 font-medium">Now available on iOS & Android</span>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-gray-900 mb-3 sm:mb-4 md:mb-6 leading-[1.1] tracking-tight">
-                Track Every Step
-                <span className="block mt-1 sm:mt-2 text-purple-600 pb-1 sm:pb-2">
-                  Run Every Mile
-                </span>
-              </h1>
+              {/* Liquid Morphing Text Hero Heading */}
+              <MorphingText
+                texts={[
+                  "Track Every Step",
+                  "Run Every Mile",
+                ]}
+                className="h-12 sm:h-16 md:h-20 lg:h-24 xl:h-28 text-[18pt] sm:text-[26pt] md:text-[34pt] lg:text-[44pt] xl:text-[54pt] text-purple-600 mb-3 sm:mb-4 md:mb-6 whitespace-nowrap"
+              />
 
               <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-600 mb-6 sm:mb-8 md:mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed px-2 sm:px-0">
                 The ultimate walking and running tracker. Monitor your pace, distance, and progress with precision designed for athletes.
