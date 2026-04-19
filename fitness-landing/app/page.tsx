@@ -198,7 +198,7 @@ export default function Home() {
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start px-4 sm:px-0">
-                <a href="https://github.com/sammyZi/Stride/releases/download/apk/app-release.apk" className="liquid-glass px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-white bg-purple-600 active:bg-purple-700 sm:hover:bg-purple-500 transition-all duration-300 sm:hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base">
+                <a href="https://github.com/sammyZi/Stride/releases/download/apk/Stride.apk" className="liquid-glass px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-white bg-purple-600 active:bg-purple-700 sm:hover:bg-purple-500 transition-all duration-300 sm:hover:scale-105 shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base">
                   <Download className="h-4 w-4 sm:h-5 sm:w-5" />
                   Start Tracking Free
                 </a>
