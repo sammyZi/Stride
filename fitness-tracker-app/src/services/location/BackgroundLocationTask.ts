@@ -30,6 +30,7 @@ interface KalmanState {
 
 let kalmanState: KalmanState | null = null;
 let lastLocation: Location | null = null;
+let isFirstLocation: boolean = true;
 
 // Callback for location updates (set by the service)
 let locationUpdateCallback: ((location: Location) => void) | null = null;
@@ -54,6 +55,7 @@ export function clearBackgroundLocationCallback(): void {
 export function resetBackgroundState(): void {
   kalmanState = null;
   lastLocation = null;
+  isFirstLocation = true;
 }
 
 /**
@@ -78,8 +80,8 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
         continue;
       }
 
-      // Detect stationary points
-      if (isStationary(location)) {
+      // Skip stationary check for the first location (GPS often reports speed=0 initially)
+      if (!isFirstLocation && isStationary(location)) {
         console.log('[Background] Stationary point detected, skipping');
         continue;
       }
@@ -87,12 +89,13 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
       // Apply Kalman filter for smoothing
       const smoothedLocation = applyKalmanFilter(location);
 
-      // Check minimum distance from last point
-      if (lastLocation && !hasMovedEnough(smoothedLocation, lastLocation)) {
+      // Check minimum distance from last point (skip for first location)
+      if (!isFirstLocation && lastLocation && !hasMovedEnough(smoothedLocation, lastLocation)) {
         continue;
       }
 
       lastLocation = smoothedLocation;
+      isFirstLocation = false;
 
       // Notify callback if set
       if (locationUpdateCallback) {

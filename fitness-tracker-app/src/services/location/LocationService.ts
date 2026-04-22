@@ -341,6 +341,36 @@ class LocationService {
   }
 
   /**
+   * Force-fetch current location and broadcast to all subscribers.
+   * Use this when you need an immediate location fix (e.g., centering the map)
+   * regardless of whether tracking updates have arrived.
+   */
+  async refreshCurrentLocation(): Promise<Location | null> {
+    try {
+      const hasPermission = await this.hasPermissions();
+      if (!hasPermission) {
+        console.warn('Cannot refresh location: permissions not granted');
+        return null;
+      }
+
+      const expoLocation = await ExpoLocation.getCurrentPositionAsync({
+        accuracy: ExpoLocation.Accuracy.High,
+      });
+
+      const location = this.convertExpoLocation(expoLocation);
+      this.lastLocation = location;
+
+      // Broadcast to all subscribers so the map updates
+      this.notifySubscribers(location);
+
+      return location;
+    } catch (error) {
+      console.error('Error refreshing current location:', error);
+      return null;
+    }
+  }
+
+  /**
    * Check if background tracking is active
    */
   async isBackgroundTrackingActive(): Promise<boolean> {
