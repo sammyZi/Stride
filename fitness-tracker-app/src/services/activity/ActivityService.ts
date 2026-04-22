@@ -444,7 +444,7 @@ class ActivityService {
     const routePoint: RoutePoint = {
       latitude: location.latitude,
       longitude: location.longitude,
-      altitude: location.altitude || undefined,
+      altitude: location.altitude !== null ? location.altitude : undefined,
       timestamp: location.timestamp,
       accuracy: location.accuracy,
     };
@@ -771,6 +771,10 @@ class ActivityService {
 
   /**
    * Calculate elevation gain from route
+   * Uses moving-average smoothing + dead-band threshold to filter GPS altitude noise.
+   * Raw GPS altitude can fluctuate ±10-30m, so we:
+   *   1. Smooth with a 5-point moving average
+   *   2. Only count cumulative rises that exceed a 3m threshold
    * @returns Elevation gain in meters
    */
   private calculateElevationGain(): number | undefined {
@@ -778,23 +782,65 @@ class ActivityService {
       return undefined;
     }
 
-    let elevationGain = 0;
     const route = this.currentActivity.route;
 
-    for (let i = 1; i < route.length; i++) {
-      const prev = route[i - 1];
-      const curr = route[i];
-
-      // Only count positive elevation changes
-      if (prev.altitude !== undefined && curr.altitude !== undefined) {
-        const elevationChange = curr.altitude - prev.altitude;
-        if (elevationChange > 0) {
-          elevationGain += elevationChange;
-        }
+    // Step 1: Extract raw altitude values, skipping points without altitude
+    const rawAltitudes: number[] = [];
+    for (const point of route) {
+      if (point.altitude !== undefined) {
+        rawAltitudes.push(point.altitude);
       }
     }
 
-    return elevationGain > 0 ? elevationGain : undefined;
+    if (rawAltitudes.length < 2) {
+      return undefined;
+    }
+
+    // Step 2: Smooth altitudes with a moving average (window = 5)
+    const windowSize = 5;
+    const smoothed: number[] = [];
+    for (let i = 0; i < rawAltitudes.length; i++) {
+      const start = Math.max(0, i - Math.floor(windowSize / 2));
+      const end = Math.min(rawAltitudes.length, i + Math.floor(windowSize / 2) + 1);
+      let sum = 0;
+      for (let j = start; j < end; j++) {
+        sum += rawAltitudes[j];
+      }
+      smoothed.push(sum / (end - start));
+    }
+
+    // Step 3: Calculate elevation gain with dead-band threshold
+    // Only count a rise after it exceeds the threshold from the last committed low point
+    const THRESHOLD = 3; // meters — ignore altitude changes smaller than this
+    let elevationGain = 0;
+    let refAltitude = smoothed[0]; // reference point (last committed low)
+    let peakAltitude = smoothed[0]; // highest point since last reference
+
+    for (let i = 1; i < smoothed.length; i++) {
+      const alt = smoothed[i];
+
+      if (alt > peakAltitude) {
+        // Going up — track the peak
+        peakAltitude = alt;
+      } else if (alt < peakAltitude - THRESHOLD) {
+        // Confirmed descent — commit any rise from reference to peak
+        const rise = peakAltitude - refAltitude;
+        if (rise > THRESHOLD) {
+          elevationGain += rise;
+        }
+        // Reset reference to current point
+        refAltitude = alt;
+        peakAltitude = alt;
+      }
+    }
+
+    // Commit any final pending rise
+    const finalRise = peakAltitude - refAltitude;
+    if (finalRise > THRESHOLD) {
+      elevationGain += finalRise;
+    }
+
+    return elevationGain > 0 ? Math.round(elevationGain) : undefined;
   }
 
   /**
