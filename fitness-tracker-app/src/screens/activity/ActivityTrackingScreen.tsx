@@ -59,6 +59,7 @@ export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ 
   const [pausedTime, setPausedTime] = useState<number>(0);
   const [lastPauseTime, setLastPauseTime] = useState<number>(0);
   const timerIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const initLocationUnsubRef = React.useRef<(() => void) | null>(null);
 
   // Pulse animation for live pace indicator
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -157,6 +158,11 @@ export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ 
 
     return () => {
       backHandler.remove();
+      // Clean up init location subscription
+      if (initLocationUnsubRef.current) {
+        initLocationUnsubRef.current();
+        initLocationUnsubRef.current = null;
+      }
       if (ActivityService.isActivityInProgress()) {
         console.log('Component unmounting, stopping activity');
         ActivityService.stopActivity();
@@ -177,8 +183,12 @@ export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ 
     // Initialize haptic feedback with settings from context
     HapticFeedbackService.initialize(settings.hapticFeedback ?? true);
 
-    // Subscribe to location updates
-    locationService.onLocationUpdate((location) => {
+    // Subscribe to location updates (store unsubscribe for cleanup)
+    // Clean up any previous subscription first
+    if (initLocationUnsubRef.current) {
+      initLocationUnsubRef.current();
+    }
+    initLocationUnsubRef.current = locationService.onLocationUpdate((location) => {
       setCurrentLocation(location);
     });
 
@@ -266,9 +276,8 @@ export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ 
       }
     });
 
-    const locationUnsubscribe = locationService.onLocationUpdate((location) => {
-      setCurrentLocation(location);
-    });
+    // Note: location updates are already handled by the init subscription
+    // No need for a duplicate subscription here
 
     const updateRoutePoints = setInterval(() => {
       const activity = ActivityService.getCurrentActivity();
@@ -280,7 +289,6 @@ export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ 
     return () => {
       console.log('Cleaning up metrics subscription');
       unsubscribe();
-      locationUnsubscribe();
       clearInterval(updateRoutePoints);
     };
   }, [isTracking]);

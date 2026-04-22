@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Location } from '../../types';
 import { Colors } from '../../constants/theme';
 import { useSettings } from '../../context';
+import locationService from '../../services/location';
 
 interface LiveRouteMapProps {
   currentLocation: Location | null;
@@ -72,10 +73,11 @@ export const LiveRouteMap: React.FC<LiveRouteMapProps> = ({
     longitude: point.longitude,
   }));
 
-  const centerOnLocation = () => {
+  const centerOnLocation = async () => {
+    setAutoFollow(true); // Re-enable auto-follow
+
     if (currentLocation && mapRef.current) {
       console.log('Center button pressed, moving to:', currentLocation.latitude, currentLocation.longitude);
-      setAutoFollow(true); // Re-enable auto-follow
       mapRef.current.animateToRegion({
         latitude: currentLocation.latitude,
         longitude: currentLocation.longitude,
@@ -83,7 +85,24 @@ export const LiveRouteMap: React.FC<LiveRouteMapProps> = ({
         longitudeDelta: 0.005,
       }, 500);
     } else {
-      console.log('Cannot center: currentLocation =', currentLocation, 'mapRef =', !!mapRef.current);
+      // currentLocation is stale/null — force-fetch a fresh GPS fix
+      console.log('currentLocation is null, fetching fresh location...');
+      try {
+        const freshLocation = await locationService.refreshCurrentLocation();
+        if (freshLocation && mapRef.current) {
+          console.log('Fresh location obtained:', freshLocation.latitude, freshLocation.longitude);
+          mapRef.current.animateToRegion({
+            latitude: freshLocation.latitude,
+            longitude: freshLocation.longitude,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+          }, 500);
+        } else {
+          console.log('Could not obtain fresh location');
+        }
+      } catch (error) {
+        console.error('Error fetching fresh location:', error);
+      }
     }
   };
 
