@@ -11,10 +11,13 @@ export interface SyncResult {
   errors: SyncError[];
 }
 
+import { SyncErrorCode } from '../utils/errors';
+
 /** Individual sync error detail. */
 export interface SyncError {
   itemId: string;
   operation: 'upload' | 'download';
+  code: SyncErrorCode;
   error: string;
   timestamp: number;
 }

@@ -20,6 +20,8 @@ import {
   AuthErrorCode,
   IAuthService,
 } from '../../types/auth';
+import { mapAuthError } from '../../utils/errors';
+import { logger } from '../../utils/logger';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -34,40 +36,6 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Map a Supabase error message to a typed AuthError. */
-function mapSupabaseError(message: string): AuthError {
-  const lower = message.toLowerCase();
-
-  if (lower.includes('already registered') || lower.includes('already been registered') || lower.includes('user already registered')) {
-    return {
-      code: 'AUTH_EMAIL_EXISTS',
-      message: 'An account with this email already exists',
-    };
-  }
-  if (lower.includes('invalid login credentials') || lower.includes('invalid credentials')) {
-    return {
-      code: 'AUTH_INVALID_CREDENTIALS',
-      message: 'Invalid email or password',
-    };
-  }
-  if (lower.includes('network') || lower.includes('fetch') || lower.includes('failed to fetch')) {
-    return {
-      code: 'AUTH_NETWORK_ERROR',
-      message: 'Unable to connect. Please check your internet connection',
-    };
-  }
-  if (lower.includes('service_unavailable') || lower.includes('service unavailable') || lower.includes('503')) {
-    return {
-      code: 'AUTH_SERVICE_UNAVAILABLE',
-      message: 'Authentication service is temporarily unavailable. You can continue using the app in local-only mode',
-    };
-  }
-
-  return {
-    code: 'AUTH_UNKNOWN_ERROR',
-    message: 'An unexpected error occurred. Please try again',
-  };
-}
 
 /** Convert a Supabase user & session into our domain types. */
 function toAuthUser(supabaseUser: { id: string; email?: string; created_at?: string }): AuthUser {
@@ -126,7 +94,8 @@ export class AuthService implements IAuthService {
       });
 
       if (error) {
-        return { success: false, error: mapSupabaseError(error.message) };
+        logger.warn('Signup failed', error);
+        return { success: false, error: mapAuthError(error.message) };
       }
 
       if (!data.user || !data.session) {
@@ -149,7 +118,8 @@ export class AuthService implements IAuthService {
 
       return { success: true, user, session };
     } catch (err: any) {
-      return { success: false, error: mapSupabaseError(err?.message ?? 'Unknown error') };
+      logger.error('Unexpected error during signup', err);
+      return { success: false, error: mapAuthError(err?.message ?? 'Unknown error') };
     }
   }
 
@@ -172,7 +142,8 @@ export class AuthService implements IAuthService {
       });
 
       if (error) {
-        return { success: false, error: mapSupabaseError(error.message) };
+        logger.warn('Login failed', error);
+        return { success: false, error: mapAuthError(error.message) };
       }
 
       if (!data.user || !data.session) {
@@ -194,7 +165,8 @@ export class AuthService implements IAuthService {
 
       return { success: true, user, session };
     } catch (err: any) {
-      return { success: false, error: mapSupabaseError(err?.message ?? 'Unknown error') };
+      logger.error('Unexpected error during login', err);
+      return { success: false, error: mapAuthError(err?.message ?? 'Unknown error') };
     }
   }
 
@@ -252,7 +224,8 @@ export class AuthService implements IAuthService {
       this._currentUser = session.user;
       this._currentSession = session;
       return session;
-    } catch {
+    } catch (err) {
+      logger.warn('Network unavailable during session restore, falling back to local copy', err);
       // Network unavailable — try local copy for offline support (Req 7.4)
       try {
         const stored = await AsyncStorage.getItem(AUTH_SESSION_KEY);
@@ -280,7 +253,8 @@ export class AuthService implements IAuthService {
   async signOut(): Promise<void> {
     try {
       await supabase.auth.signOut();
-    } catch {
+    } catch (err) {
+      logger.warn('Signout API call failed, proceeding with local clear', err);
       // Best-effort — always clear local state even if Supabase call fails.
     }
     await this.clearSession();
