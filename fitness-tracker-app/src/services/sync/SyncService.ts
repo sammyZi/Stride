@@ -354,7 +354,7 @@ class SyncService {
     ]);
   }
 
-  /** Download and merge activities. */
+  /** Download and merge activities with conflict resolution. */
   private async downloadActivities(): Promise<void> {
     if (!this._userId) return;
 
@@ -372,18 +372,29 @@ class SyncService {
 
       for (const row of data) {
         const remote = rowToActivity(row);
-        if (!localMap.has(remote.id)) {
+        const local = localMap.get(remote.id);
+
+        if (!local) {
           // New from cloud — save locally
           await StorageService.saveActivity(remote);
+        } else {
+          // Both exist — resolve conflict using timestamps
+          const winner = this.resolveConflict(
+            { ...local, _timestamp: local.createdAt },
+            { ...remote, _timestamp: remote.createdAt },
+          );
+          if (winner === remote) {
+            await StorageService.saveActivity(remote);
+          }
+          // If local wins, nothing to do — it's already saved
         }
-        // If it exists locally, keep local (conflict resolution handled later in Task 9)
       }
     } catch (err) {
       console.error('Error downloading activities:', err);
     }
   }
 
-  /** Download and merge profile. */
+  /** Download and merge profile with conflict resolution. */
   private async downloadProfile(): Promise<void> {
     if (!this._userId) return;
 
@@ -396,18 +407,28 @@ class SyncService {
 
       if (error || !data) return;
 
+      const remoteProfile = rowToProfile(data);
       const localProfile = await StorageService.getUserProfile();
+
       if (!localProfile) {
         // No local profile — use cloud version
-        await StorageService.saveUserProfile(rowToProfile(data));
+        await StorageService.saveUserProfile(remoteProfile);
+      } else {
+        // Both exist — resolve conflict using updatedAt
+        const winner = this.resolveConflict(
+          { ...localProfile, _timestamp: localProfile.updatedAt },
+          { ...remoteProfile, _timestamp: remoteProfile.updatedAt },
+        );
+        if (winner === remoteProfile) {
+          await StorageService.saveUserProfile(remoteProfile);
+        }
       }
-      // If local exists, keep local (conflict resolution in Task 9)
     } catch (err) {
       console.error('Error downloading profile:', err);
     }
   }
 
-  /** Download and merge goals. */
+  /** Download and merge goals with conflict resolution. */
   private async downloadGoals(): Promise<void> {
     if (!this._userId) return;
 
@@ -424,13 +445,48 @@ class SyncService {
 
       for (const row of data) {
         const remote = rowToGoal(row);
-        if (!localMap.has(remote.id)) {
+        const local = localMap.get(remote.id);
+
+        if (!local) {
           await StorageService.saveGoal(remote);
+        } else {
+          // Both exist — resolve conflict using createdAt
+          const winner = this.resolveConflict(
+            { ...local, _timestamp: local.createdAt },
+            { ...remote, _timestamp: remote.createdAt },
+          );
+          if (winner === remote) {
+            await StorageService.saveGoal(remote);
+          }
         }
       }
     } catch (err) {
       console.error('Error downloading goals:', err);
     }
+  }
+
+  // ── Conflict resolution ────────────────────────────────────────────────
+
+  /**
+   * Resolve a conflict between a local and remote version of the same entity.
+   *
+   * Strategy: **last-write-wins**.
+   *  - Compare `_timestamp` (ms since epoch) on each object.
+   *  - The version with the higher (more recent) timestamp wins.
+   *  - If timestamps are identical, the remote version wins
+   *    (server is the source of truth).
+   *
+   * Requirements: 5.6
+   */
+  resolveConflict<T extends { _timestamp: number }>(
+    local: T,
+    remote: T,
+  ): T {
+    if (local._timestamp > remote._timestamp) {
+      return local;
+    }
+    // Remote wins on equal timestamps (tiebreaker)
+    return remote;
   }
 
   // ── Sync callback handler ──────────────────────────────────────────────
