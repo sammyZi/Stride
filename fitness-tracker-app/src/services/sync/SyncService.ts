@@ -18,7 +18,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabase';
 import StorageService from '../storage/StorageService';
 import type { Activity, UserProfile, Goal } from '../../types';
-import type { SyncResult, SyncError, QueuedOperation } from '../../types/sync';
+import type { SyncResult, SyncError, QueuedOperation, MigrationResult } from '../../types/sync';
+import { mapSyncError } from '../../utils/errors';
+import { logger } from '../../utils/logger';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -26,6 +28,20 @@ const SYNC_QUEUE_KEY = '@sync_queue';
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000; // 1s → 2s → 4s
 const BACKGROUND_SYNC_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+
+// ── Migration progress type ──────────────────────────────────────────────────
+
+/** Progress info emitted during data migration. */
+export interface MigrationProgress {
+  /** Human-readable description of the current phase. */
+  phase: string;
+  /** Number of items completed so far. */
+  completedItems: number;
+  /** Total number of items to migrate. */
+  totalItems: number;
+  /** Completion percentage (0–100). */
+  percent: number;
+}
 
 // ── Supabase ↔ Local type mappers ────────────────────────────────────────────
 
@@ -223,7 +239,7 @@ class SyncService {
 
     // Process any queued operations from previous sessions
     this.processQueue().catch((err) => {
-      console.error('SyncService: failed to process queue on init:', err);
+      logger.error('SyncService: failed to process queue on init', err);
     });
 
     // Start periodic background sync
@@ -246,7 +262,7 @@ class SyncService {
    * Upload a single activity to Supabase (upsert).
    */
   async syncActivity(activity: Activity): Promise<SyncResult> {
-    if (!this._userId) return makeSyncResult(0, 1, [{ itemId: activity.id, operation: 'upload', error: 'Not initialized', timestamp: Date.now() }]);
+    if (!this._userId) return makeSyncResult(0, 1, [{ itemId: activity.id, operation: 'upload', code: 'CONFIG_MISSING', error: 'Not initialized', timestamp: Date.now() }]);
 
     try {
       const row = activityToRow(activity, this._userId);
@@ -255,11 +271,15 @@ class SyncService {
         .upsert(row, { onConflict: 'id' });
 
       if (error) {
-        return makeSyncResult(0, 1, [{ itemId: activity.id, operation: 'upload', error: error.message, timestamp: Date.now() }]);
+        const mappedError = mapSyncError(error.message, 'upload');
+        logger.warn(`Failed to sync activity ${activity.id}`, mappedError);
+        return makeSyncResult(0, 1, [{ itemId: activity.id, operation: 'upload', code: mappedError.code, error: mappedError.message, timestamp: Date.now() }]);
       }
       return makeSyncResult(1, 0);
     } catch (err: any) {
-      return makeSyncResult(0, 1, [{ itemId: activity.id, operation: 'upload', error: err?.message ?? 'Unknown', timestamp: Date.now() }]);
+      const mappedError = mapSyncError(err, 'upload');
+      logger.error(`Unexpected error syncing activity ${activity.id}`, err);
+      return makeSyncResult(0, 1, [{ itemId: activity.id, operation: 'upload', code: mappedError.code, error: mappedError.message, timestamp: Date.now() }]);
     }
   }
 
@@ -267,7 +287,7 @@ class SyncService {
    * Upload a user profile to Supabase (upsert).
    */
   async syncUserProfile(profile: UserProfile): Promise<SyncResult> {
-    if (!this._userId) return makeSyncResult(0, 1, [{ itemId: 'profile', operation: 'upload', error: 'Not initialized', timestamp: Date.now() }]);
+    if (!this._userId) return makeSyncResult(0, 1, [{ itemId: 'profile', operation: 'upload', code: 'CONFIG_MISSING', error: 'Not initialized', timestamp: Date.now() }]);
 
     try {
       const row = profileToRow(profile, this._userId);
@@ -276,11 +296,15 @@ class SyncService {
         .upsert(row, { onConflict: 'id' });
 
       if (error) {
-        return makeSyncResult(0, 1, [{ itemId: 'profile', operation: 'upload', error: error.message, timestamp: Date.now() }]);
+        const mappedError = mapSyncError(error.message, 'upload');
+        logger.warn('Failed to sync user profile', mappedError);
+        return makeSyncResult(0, 1, [{ itemId: 'profile', operation: 'upload', code: mappedError.code, error: mappedError.message, timestamp: Date.now() }]);
       }
       return makeSyncResult(1, 0);
     } catch (err: any) {
-      return makeSyncResult(0, 1, [{ itemId: 'profile', operation: 'upload', error: err?.message ?? 'Unknown', timestamp: Date.now() }]);
+      const mappedError = mapSyncError(err, 'upload');
+      logger.error('Unexpected error syncing user profile', err);
+      return makeSyncResult(0, 1, [{ itemId: 'profile', operation: 'upload', code: mappedError.code, error: mappedError.message, timestamp: Date.now() }]);
     }
   }
 
@@ -288,7 +312,7 @@ class SyncService {
    * Upload all local goals to Supabase (upsert).
    */
   async syncGoals(): Promise<SyncResult> {
-    if (!this._userId) return makeSyncResult(0, 1, [{ itemId: 'goals', operation: 'upload', error: 'Not initialized', timestamp: Date.now() }]);
+    if (!this._userId) return makeSyncResult(0, 1, [{ itemId: 'goals', operation: 'upload', code: 'CONFIG_MISSING', error: 'Not initialized', timestamp: Date.now() }]);
 
     const goals = await StorageService.getGoals();
     let synced = 0;
@@ -304,13 +328,17 @@ class SyncService {
 
         if (error) {
           failed++;
-          errors.push({ itemId: goal.id, operation: 'upload', error: error.message, timestamp: Date.now() });
+          const mappedError = mapSyncError(error.message, 'upload');
+          logger.warn(`Failed to sync goal ${goal.id}`, mappedError);
+          errors.push({ itemId: goal.id, operation: 'upload', code: mappedError.code, error: mappedError.message, timestamp: Date.now() });
         } else {
           synced++;
         }
       } catch (err: any) {
         failed++;
-        errors.push({ itemId: goal.id, operation: 'upload', error: err?.message ?? 'Unknown', timestamp: Date.now() });
+        const mappedError = mapSyncError(err, 'upload');
+        logger.error(`Unexpected error syncing goal ${goal.id}`, err);
+        errors.push({ itemId: goal.id, operation: 'upload', code: mappedError.code, error: mappedError.message, timestamp: Date.now() });
       }
     }
 
@@ -321,7 +349,7 @@ class SyncService {
    * Upload all local activities to Supabase.
    */
   async syncAllActivities(): Promise<SyncResult> {
-    if (!this._userId) return makeSyncResult(0, 1, [{ itemId: 'all', operation: 'upload', error: 'Not initialized', timestamp: Date.now() }]);
+    if (!this._userId) return makeSyncResult(0, 1, [{ itemId: 'all', operation: 'upload', code: 'CONFIG_MISSING', error: 'Not initialized', timestamp: Date.now() }]);
 
     const activities = await StorageService.getActivities();
     let synced = 0;
@@ -336,6 +364,144 @@ class SyncService {
     }
 
     return makeSyncResult(synced, failed, errors);
+  }
+
+  // ── Data Migration ──────────────────────────────────────────────────────
+
+  /**
+   * Migrate all existing local data to Supabase cloud storage.
+   *
+   * Called when a user enables cloud-sync for the first time.
+   * - Uploads all activities, profile, and goals
+   * - Provides progress updates via optional callback
+   * - Preserves all local data regardless of outcome (Req 8.4, 8.5)
+   * - Collects errors per item so partial success is possible
+   *
+   * Requirements: 8.1, 8.2, 8.3, 8.4, 8.5
+   */
+  async migrateLocalDataToCloud(
+    onProgress?: (progress: MigrationProgress) => void,
+  ): Promise<MigrationResult> {
+    if (!this._userId) {
+      return {
+        success: false,
+        migratedActivities: 0,
+        migratedGoals: 0,
+        migratedProfile: false,
+        errors: ['Migration failed: user not authenticated'],
+      };
+    }
+
+    const errors: string[] = [];
+    let migratedActivities = 0;
+    let migratedGoals = 0;
+    let migratedProfile = false;
+
+    // Gather totals for progress tracking
+    const activities = await StorageService.getActivities();
+    const goals = await StorageService.getGoals();
+    const profile = await StorageService.getUserProfile();
+
+    const totalItems = activities.length + goals.length + (profile ? 1 : 0);
+    let completedItems = 0;
+
+    const reportProgress = (phase: string) => {
+      if (onProgress) {
+        onProgress({
+          phase,
+          completedItems,
+          totalItems,
+          percent: totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 100,
+        });
+      }
+    };
+
+    // ── Phase 1: Upload profile ────────────────────────────────────────
+    if (profile) {
+      reportProgress('Uploading profile…');
+      try {
+        const row = profileToRow(profile, this._userId);
+        const { error } = await supabase
+          .from('user_profiles')
+          .upsert(row, { onConflict: 'id' });
+
+        if (error) {
+          const mappedError = mapSyncError(error.message, 'upload');
+          logger.warn(`Profile migration error`, mappedError);
+          errors.push(`Profile: ${mappedError.message}`);
+        } else {
+          migratedProfile = true;
+        }
+      } catch (err: any) {
+        const mappedError = mapSyncError(err, 'upload');
+        logger.error(`Profile migration exception`, err);
+        errors.push(`Profile: ${mappedError.message}`);
+      }
+      completedItems++;
+      reportProgress('Profile uploaded');
+    }
+
+    // ── Phase 2: Upload activities ─────────────────────────────────────
+    for (const activity of activities) {
+      reportProgress(`Uploading activity ${migratedActivities + 1}/${activities.length}…`);
+      try {
+        const row = activityToRow(activity, this._userId!);
+        const { error } = await supabase
+          .from('activities')
+          .upsert(row, { onConflict: 'id' });
+
+        if (error) {
+          const mappedError = mapSyncError(error.message, 'upload');
+          logger.warn(`Activity migration error for ${activity.id}`, mappedError);
+          errors.push(`Activity ${activity.id}: ${mappedError.message}`);
+        } else {
+          migratedActivities++;
+        }
+      } catch (err: any) {
+        const mappedError = mapSyncError(err, 'upload');
+        logger.error(`Activity migration exception for ${activity.id}`, err);
+        errors.push(`Activity ${activity.id}: ${mappedError.message}`);
+      }
+      completedItems++;
+      reportProgress(`Activities: ${migratedActivities}/${activities.length}`);
+    }
+
+    // ── Phase 3: Upload goals ──────────────────────────────────────────
+    for (const goal of goals) {
+      reportProgress(`Uploading goal ${migratedGoals + 1}/${goals.length}…`);
+      try {
+        const row = goalToRow(goal, this._userId!);
+        const { error } = await supabase
+          .from('goals')
+          .upsert(row, { onConflict: 'id' });
+
+        if (error) {
+          const mappedError = mapSyncError(error.message, 'upload');
+          logger.warn(`Goal migration error for ${goal.id}`, mappedError);
+          errors.push(`Goal ${goal.id}: ${mappedError.message}`);
+        } else {
+          migratedGoals++;
+        }
+      } catch (err: any) {
+        const mappedError = mapSyncError(err, 'upload');
+        logger.error(`Goal migration exception for ${goal.id}`, err);
+        errors.push(`Goal ${goal.id}: ${mappedError.message}`);
+      }
+      completedItems++;
+      reportProgress(`Goals: ${migratedGoals}/${goals.length}`);
+    }
+
+    // ── Done ───────────────────────────────────────────────────────────
+    const success = errors.length === 0;
+    reportProgress(success ? 'Migration complete!' : 'Migration completed with errors');
+
+    return {
+      success,
+      migratedActivities,
+      migratedGoals,
+      migratedProfile,
+      errors,
+    };
   }
 
   // ── Download ────────────────────────────────────────────────────────────
@@ -354,7 +520,7 @@ class SyncService {
     ]);
   }
 
-  /** Download and merge activities. */
+  /** Download and merge activities with conflict resolution. */
   private async downloadActivities(): Promise<void> {
     if (!this._userId) return;
 
@@ -372,18 +538,29 @@ class SyncService {
 
       for (const row of data) {
         const remote = rowToActivity(row);
-        if (!localMap.has(remote.id)) {
+        const local = localMap.get(remote.id);
+
+        if (!local) {
           // New from cloud — save locally
           await StorageService.saveActivity(remote);
+        } else {
+          // Both exist — resolve conflict using timestamps
+          const winner = this.resolveConflict(
+            { ...local, _timestamp: local.createdAt },
+            { ...remote, _timestamp: remote.createdAt },
+          );
+          if (winner === remote) {
+            await StorageService.saveActivity(remote);
+          }
+          // If local wins, nothing to do — it's already saved
         }
-        // If it exists locally, keep local (conflict resolution handled later in Task 9)
       }
     } catch (err) {
-      console.error('Error downloading activities:', err);
+      logger.error('Error downloading activities', err);
     }
   }
 
-  /** Download and merge profile. */
+  /** Download and merge profile with conflict resolution. */
   private async downloadProfile(): Promise<void> {
     if (!this._userId) return;
 
@@ -396,18 +573,28 @@ class SyncService {
 
       if (error || !data) return;
 
+      const remoteProfile = rowToProfile(data);
       const localProfile = await StorageService.getUserProfile();
+
       if (!localProfile) {
         // No local profile — use cloud version
-        await StorageService.saveUserProfile(rowToProfile(data));
+        await StorageService.saveUserProfile(remoteProfile);
+      } else {
+        // Both exist — resolve conflict using updatedAt
+        const winner = this.resolveConflict(
+          { ...localProfile, _timestamp: localProfile.updatedAt },
+          { ...remoteProfile, _timestamp: remoteProfile.updatedAt },
+        );
+        if (winner === remoteProfile) {
+          await StorageService.saveUserProfile(remoteProfile);
+        }
       }
-      // If local exists, keep local (conflict resolution in Task 9)
     } catch (err) {
-      console.error('Error downloading profile:', err);
+      logger.error('Error downloading profile', err);
     }
   }
 
-  /** Download and merge goals. */
+  /** Download and merge goals with conflict resolution. */
   private async downloadGoals(): Promise<void> {
     if (!this._userId) return;
 
@@ -424,13 +611,48 @@ class SyncService {
 
       for (const row of data) {
         const remote = rowToGoal(row);
-        if (!localMap.has(remote.id)) {
+        const local = localMap.get(remote.id);
+
+        if (!local) {
           await StorageService.saveGoal(remote);
+        } else {
+          // Both exist — resolve conflict using createdAt
+          const winner = this.resolveConflict(
+            { ...local, _timestamp: local.createdAt },
+            { ...remote, _timestamp: remote.createdAt },
+          );
+          if (winner === remote) {
+            await StorageService.saveGoal(remote);
+          }
         }
       }
     } catch (err) {
-      console.error('Error downloading goals:', err);
+      logger.error('Error downloading goals', err);
     }
+  }
+
+  // ── Conflict resolution ────────────────────────────────────────────────
+
+  /**
+   * Resolve a conflict between a local and remote version of the same entity.
+   *
+   * Strategy: **last-write-wins**.
+   *  - Compare `_timestamp` (ms since epoch) on each object.
+   *  - The version with the higher (more recent) timestamp wins.
+   *  - If timestamps are identical, the remote version wins
+   *    (server is the source of truth).
+   *
+   * Requirements: 5.6
+   */
+  resolveConflict<T extends { _timestamp: number }>(
+    local: T,
+    remote: T,
+  ): T {
+    if (local._timestamp > remote._timestamp) {
+      return local;
+    }
+    // Remote wins on equal timestamps (tiebreaker)
+    return remote;
   }
 
   // ── Sync callback handler ──────────────────────────────────────────────
@@ -460,7 +682,7 @@ class SyncService {
         retryCount: MAX_RETRIES,
       };
       await this._queue.enqueue(queuedOp);
-      console.warn(`SyncService: queued ${entityType} (${operation}) for later retry`);
+      logger.warn(`SyncService: queued ${entityType} (${operation}) for later retry`);
     }
   }
 
@@ -559,7 +781,7 @@ class SyncService {
     const ops = await this._queue.getAll();
     if (ops.length === 0) return;
 
-    console.log(`SyncService: processing ${ops.length} queued operation(s)`);
+    logger.log(`SyncService: processing ${ops.length} queued operation(s)`);
 
     for (const op of ops) {
       const success = await this.executeWithRetry(op.type, op.operation, op.data);
@@ -589,7 +811,7 @@ class SyncService {
     this.stopBackgroundSync();
     this._backgroundTimer = setInterval(() => {
       this.processQueue().catch((err) => {
-        console.error('SyncService: background sync error:', err);
+        logger.error('SyncService: background sync error', err);
       });
     }, BACKGROUND_SYNC_INTERVAL_MS);
   }
