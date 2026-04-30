@@ -1,6 +1,9 @@
 /**
  * StorageService - Local data persistence using AsyncStorage
- * Handles all data storage operations for the Fitness Tracker App
+ * Handles all data storage operations for the Fitness Tracker App.
+ *
+ * Extended to support storage mode awareness (local-only vs cloud-sync)
+ * for Supabase cloud integration. Requirements: 4.1, 4.3–4.5, 6.1, 6.2
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,6 +20,21 @@ import {
 } from '../../types';
 import personalRecordsService from '../personalRecords/PersonalRecordsService';
 
+// ── Storage mode types ──────────────────────────────────────────────────────
+
+export type StorageMode = 'local-only' | 'cloud-sync';
+
+/**
+ * Callback invoked by StorageService whenever data is written in cloud-sync
+ * mode. The SyncService (implemented later) will register itself here to
+ * receive live change notifications.
+ */
+export type SyncCallback = (
+  entityType: 'activity' | 'profile' | 'goal',
+  operation: 'create' | 'update' | 'delete',
+  data: any,
+) => void;
+
 // Storage keys
 const STORAGE_KEYS = {
   USER_PROFILE: '@user_profile',
@@ -26,20 +44,110 @@ const STORAGE_KEYS = {
   ACTIVITY_PREFIX: '@activity_',
   INSTALL_ID: '@install_id',
   APP_VERSION: '@app_version',
+  // Auth / sync keys
+  STORAGE_MODE: '@storage_mode',
+  USER_ID: '@user_id',
 } as const;
 
 class StorageService {
+  // ── Storage mode state ───────────────────────────────────────────────────
+
+  private _storageMode: StorageMode = 'local-only';
+  private _userId: string | null = null;
+  private _syncCallback: SyncCallback | null = null;
+
   // ==================== App Initialization ====================
 
   /**
-   * Initialize storage
-   * Call this on app startup
+   * Initialize storage.
+   * Call this on app startup — also restores the persisted storage mode.
    */
   async initialize(): Promise<void> {
     try {
-      console.log('Storage initialized successfully');
+      // Restore persisted storage mode
+      const mode = await AsyncStorage.getItem(STORAGE_KEYS.STORAGE_MODE);
+      if (mode === 'cloud-sync' || mode === 'local-only') {
+        this._storageMode = mode;
+      }
+
+      const userId = await AsyncStorage.getItem(STORAGE_KEYS.USER_ID);
+      if (userId) {
+        this._userId = userId;
+      }
+
+      console.log(`Storage initialized (mode: ${this._storageMode})`);
     } catch (error) {
       console.error('Error initializing storage:', error);
+    }
+  }
+
+  // ==================== Storage Mode Management ====================
+
+  /**
+   * Return the current storage mode.
+   */
+  getStorageMode(): StorageMode {
+    return this._storageMode;
+  }
+
+  /**
+   * Persist and apply a new storage mode.
+   */
+  async setStorageMode(mode: StorageMode): Promise<void> {
+    this._storageMode = mode;
+    await AsyncStorage.setItem(STORAGE_KEYS.STORAGE_MODE, mode);
+  }
+
+  /**
+   * Enable cloud sync for a given user.
+   * Preserves all existing local data (Req 4.5, 6.4).
+   */
+  async enableCloudSync(userId: string): Promise<void> {
+    this._userId = userId;
+    await AsyncStorage.setItem(STORAGE_KEYS.USER_ID, userId);
+    await this.setStorageMode('cloud-sync');
+  }
+
+  /**
+   * Disable cloud sync — revert to local-only.
+   * Existing local data is preserved (Req 4.5).
+   */
+  async disableCloudSync(): Promise<void> {
+    this._userId = null;
+    await AsyncStorage.removeItem(STORAGE_KEYS.USER_ID);
+    await this.setStorageMode('local-only');
+  }
+
+  /**
+   * Return the authenticated user ID (if any).
+   */
+  getUserId(): string | null {
+    return this._userId;
+  }
+
+  /**
+   * Register a callback that will be invoked on every write operation
+   * while in cloud-sync mode. The SyncService will use this to push
+   * changes to Supabase.
+   */
+  registerSyncCallback(callback: SyncCallback | null): void {
+    this._syncCallback = callback;
+  }
+
+  /**
+   * Notify the sync callback (if registered and in cloud-sync mode).
+   */
+  private notifySync(
+    entityType: 'activity' | 'profile' | 'goal',
+    operation: 'create' | 'update' | 'delete',
+    data: any,
+  ): void {
+    if (this._storageMode === 'cloud-sync' && this._syncCallback) {
+      try {
+        this._syncCallback(entityType, operation, data);
+      } catch (err) {
+        console.error('Sync callback error (non-blocking):', err);
+      }
     }
   }
 
@@ -50,24 +158,30 @@ class StorageService {
    */
   async saveActivity(activity: Activity): Promise<void> {
     try {
+      // Determine if this is a new or existing activity
+      const existingActivities = await this.getActivities();
+      const isUpdate = existingActivities.some(a => a.id === activity.id);
+
       // Save individual activity
       const activityKey = `${STORAGE_KEYS.ACTIVITY_PREFIX}${activity.id}`;
       await AsyncStorage.setItem(activityKey, JSON.stringify(activity));
 
       // Update activities list
-      const activities = await this.getActivities();
-      const existingIndex = activities.findIndex(a => a.id === activity.id);
+      const existingIndex = existingActivities.findIndex(a => a.id === activity.id);
       
       if (existingIndex >= 0) {
-        activities[existingIndex] = activity;
+        existingActivities[existingIndex] = activity;
       } else {
-        activities.push(activity);
+        existingActivities.push(activity);
       }
 
       // Sort by startTime descending (newest first)
-      activities.sort((a, b) => b.startTime - a.startTime);
+      existingActivities.sort((a, b) => b.startTime - a.startTime);
 
-      await AsyncStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(activities));
+      await AsyncStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(existingActivities));
+
+      // Notify sync service if in cloud-sync mode
+      this.notifySync('activity', isUpdate ? 'update' : 'create', activity);
     } catch (error) {
       console.error('Error saving activity:', error);
       throw new Error('Failed to save activity');
@@ -134,6 +248,9 @@ class StorageService {
       await AsyncStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(filteredActivities));
       
       console.log(`Activity ${activityId} permanently deleted`);
+
+      // Notify sync service if in cloud-sync mode
+      this.notifySync('activity', 'delete', { id: activityId });
     } catch (error) {
       console.error('Error deleting activity:', error);
       throw new Error('Failed to delete activity');
@@ -168,6 +285,9 @@ class StorageService {
   async saveUserProfile(profile: UserProfile): Promise<void> {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
+
+      // Notify sync service if in cloud-sync mode
+      this.notifySync('profile', 'update', profile);
     } catch (error) {
       console.error('Error saving user profile:', error);
       throw new Error('Failed to save user profile');
@@ -223,14 +343,18 @@ class StorageService {
     try {
       const goals = await this.getGoals();
       const existingIndex = goals.findIndex(g => g.id === goal.id);
+      const isUpdate = existingIndex >= 0;
 
-      if (existingIndex >= 0) {
+      if (isUpdate) {
         goals[existingIndex] = goal;
       } else {
         goals.push(goal);
       }
 
       await AsyncStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(goals));
+
+      // Notify sync service if in cloud-sync mode
+      this.notifySync('goal', isUpdate ? 'update' : 'create', goal);
     } catch (error) {
       console.error('Error saving goal:', error);
       throw new Error('Failed to save goal');
@@ -278,6 +402,9 @@ class StorageService {
       const goals = await this.getGoals();
       const filteredGoals = goals.filter(g => g.id !== goalId);
       await AsyncStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(filteredGoals));
+
+      // Notify sync service if in cloud-sync mode
+      this.notifySync('goal', 'delete', { id: goalId });
     } catch (error) {
       console.error('Error deleting goal:', error);
       throw new Error('Failed to delete goal');
