@@ -4,10 +4,13 @@
  * Displays the user's account information, cloud-sync toggle,
  * sync status / last sync time, and logout functionality.
  *
- * Requirements: 3.1, 4.3, 4.5
+ * When cloud-sync is enabled for the first time the screen shows a
+ * migration progress dialog that uploads all local data to Supabase.
+ *
+ * Requirements: 3.1, 4.3, 4.5, 8.1, 8.2, 8.3
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -16,20 +19,24 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Text } from '../../components/common';
+
+import { Text, Button } from '../../components/common';
 import { Colors, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { useAuth } from '../../context';
 import { useTheme } from '../../hooks';
 import StorageService from '../../services/storage/StorageService';
+import SyncService from '../../services/sync/SyncService';
+import type { MigrationProgress } from '../../services/sync';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const LAST_SYNC_KEY = '@last_sync_time';
+const MIGRATION_DONE_KEY = '@cloud_migration_done';
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -42,6 +49,13 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [isTogglingSync, setIsTogglingSync] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Migration dialog state (15.3)
+  const [showMigration, setShowMigration] = useState(false);
+  const [migrationProgress, setMigrationProgress] = useState<MigrationProgress | null>(null);
+  const [migrationDone, setMigrationDone] = useState(false);
+  const [migrationError, setMigrationError] = useState<string | null>(null);
+  const migrationRunning = useRef(false);
 
   // ── Load initial state ─────────────────────────────────────────────────
 
@@ -67,30 +81,79 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
     if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} min ago`;
     if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
 
-    // Same year — omit the year
     if (date.getFullYear() === now.getFullYear()) {
       return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
     return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
+  // ── Migration logic (15.3) ────────────────────────────────────────────
+
+  const runMigration = useCallback(async () => {
+    if (migrationRunning.current || !user) return;
+    migrationRunning.current = true;
+    setMigrationDone(false);
+    setMigrationError(null);
+    setMigrationProgress({ phase: 'Preparing…', completedItems: 0, totalItems: 0, percent: 0 });
+
+    try {
+      // Initialize the sync service for this user
+      await SyncService.initialize(user.id);
+
+      const result = await SyncService.migrateLocalDataToCloud((progress) => {
+        setMigrationProgress(progress);
+      });
+
+      if (result.success) {
+        await AsyncStorage.setItem(MIGRATION_DONE_KEY, 'true');
+        await AsyncStorage.setItem(LAST_SYNC_KEY, String(Date.now()));
+        setLastSyncTime('Just now');
+        setMigrationDone(true);
+      } else {
+        setMigrationError(
+          result.errors.length > 0
+            ? `Migration completed with ${result.errors.length} error(s). Your local data is preserved.`
+            : 'Migration failed. Your local data is preserved. You can try again later.'
+        );
+        // Still mark partial success — cloud-sync stays enabled
+        setMigrationDone(true);
+      }
+    } catch {
+      setMigrationError('An unexpected error occurred. Your local data is preserved.');
+      setMigrationDone(true);
+    } finally {
+      migrationRunning.current = false;
+    }
+  }, [user]);
+
   // ── Toggle cloud sync ──────────────────────────────────────────────────
 
   const handleToggleCloudSync = useCallback(async (value: boolean) => {
     if (!isAuthenticated || !user) {
-      Alert.alert(
-        'Account Required',
-        'Please sign in to enable cloud sync.',
-      );
+      Alert.alert('Account Required', 'Please sign in to enable cloud sync.');
       return;
     }
 
     setIsTogglingSync(true);
     try {
       if (value) {
+        // Enable cloud sync
         await StorageService.enableCloudSync(user.id);
         setCloudSyncEnabled(true);
+
+        // Check if migration has already been done
+        const alreadyMigrated = await AsyncStorage.getItem(MIGRATION_DONE_KEY);
+        if (alreadyMigrated !== 'true') {
+          // First time — show migration dialog (15.3)
+          setShowMigration(true);
+          // Migration starts after dialog is shown
+          setTimeout(() => runMigration(), 300);
+        } else {
+          // Already migrated — just initialize sync
+          await SyncService.initialize(user.id);
+        }
       } else {
+        // Disable cloud sync — ask for confirmation
         Alert.alert(
           'Disable Cloud Sync',
           'Your local data will be preserved, but changes will no longer sync to the cloud.',
@@ -100,6 +163,7 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
               text: 'Disable',
               style: 'destructive',
               onPress: async () => {
+                await SyncService.shutdown();
                 await StorageService.disableCloudSync();
                 setCloudSyncEnabled(false);
                 setIsTogglingSync(false);
@@ -114,7 +178,7 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
     } finally {
       setIsTogglingSync(false);
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, runMigration]);
 
   // ── Logout ─────────────────────────────────────────────────────────────
 
@@ -130,6 +194,7 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
           onPress: async () => {
             setIsLoggingOut(true);
             try {
+              await SyncService.shutdown();
               await signOut();
             } catch {
               Alert.alert('Error', 'Failed to log out. Please try again.');
@@ -142,7 +207,7 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
     );
   }, [signOut]);
 
-  // ── Render ─────────────────────────────────────────────────────────────
+  // ── Render: Not authenticated ──────────────────────────────────────────
 
   if (!isAuthenticated || !user) {
     return (
@@ -170,6 +235,8 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
     );
   }
 
+  // ── Render: Authenticated ──────────────────────────────────────────────
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
@@ -183,7 +250,7 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Account Info Card */}
-        <Animated.View entering={FadeInDown.delay(100).duration(400)} style={[styles.card, { backgroundColor: colors.surface }]}>
+        <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <View style={[styles.avatarContainer, { backgroundColor: colors.primary + '15' }]}>
             <Ionicons name="person" size={32} color={colors.primary} />
           </View>
@@ -195,10 +262,10 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
               Member since {new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long' })}
             </Text>
           </View>
-        </Animated.View>
+        </View>
 
         {/* Cloud Sync Section */}
-        <Animated.View entering={FadeInDown.delay(200).duration(400)} style={[styles.section, { backgroundColor: colors.surface }]}>
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Cloud Sync</Text>
 
           {/* Sync toggle */}
@@ -262,10 +329,10 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
               </View>
             </View>
           )}
-        </Animated.View>
+        </View>
 
         {/* Account Actions */}
-        <Animated.View entering={FadeInDown.delay(300).duration(400)} style={[styles.section, { backgroundColor: colors.surface }]}>
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Account</Text>
 
           <TouchableOpacity
@@ -289,17 +356,123 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
               <Ionicons name="chevron-forward" size={24} color={colors.textSecondary} />
             )}
           </TouchableOpacity>
-        </Animated.View>
+        </View>
 
         {/* Info footer */}
         <View style={styles.infoSection}>
           <Ionicons name="information-circle-outline" size={20} color={colors.textSecondary} />
           <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-            Your local data is always preserved, even if you disable cloud sync or log out. 
+            Your local data is always preserved, even if you disable cloud sync or log out.
             Enabling cloud sync allows you to access your data across multiple devices.
           </Text>
         </View>
       </ScrollView>
+
+      {/* ── Migration Progress Dialog (15.3) ─────────────────────────────── */}
+      <Modal
+        visible={showMigration}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (migrationDone) setShowMigration(false);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.migrationDialog, { backgroundColor: colors.surface }]}>
+            {/* Icon */}
+            <View style={[styles.migrationIcon, { backgroundColor: colors.primary + '15' }]}>
+              <Ionicons
+                name={migrationDone ? (migrationError ? 'alert-circle' : 'checkmark-circle') : 'cloud-upload-outline'}
+                size={40}
+                color={migrationDone && migrationError ? Colors.warning : colors.primary}
+              />
+            </View>
+
+            {/* Title */}
+            <Text variant="large" weight="bold" color={colors.textPrimary} style={styles.migrationTitle}>
+              {migrationDone
+                ? migrationError
+                  ? 'Migration Complete'
+                  : 'All Done!'
+                : 'Migrating Data'}
+            </Text>
+
+            {/* Progress info */}
+            {!migrationDone && migrationProgress && (
+              <>
+                <Text variant="regular" color={colors.textSecondary} style={styles.migrationPhase}>
+                  {migrationProgress.phase}
+                </Text>
+
+                {/* Progress bar */}
+                <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
+                  <View
+                    style={[
+                      styles.progressBarFill,
+                      {
+                        backgroundColor: colors.primary,
+                        width: `${migrationProgress.percent}%`,
+                      },
+                    ]}
+                  />
+                </View>
+
+                <Text variant="small" color={colors.textSecondary}>
+                  {migrationProgress.completedItems} / {migrationProgress.totalItems} items
+                </Text>
+              </>
+            )}
+
+            {/* Completion message */}
+            {migrationDone && (
+              <>
+                {migrationError ? (
+                  <Text variant="regular" color={Colors.warning} style={styles.migrationPhase}>
+                    {migrationError}
+                  </Text>
+                ) : (
+                  <Text variant="regular" color={colors.textSecondary} style={styles.migrationPhase}>
+                    Your data has been successfully uploaded to the cloud.
+                  </Text>
+                )}
+
+                <Button
+                  title="Done"
+                  variant="primary"
+                  size="medium"
+                  fullWidth
+                  onPress={() => setShowMigration(false)}
+                  style={styles.migrationButton}
+                />
+
+                {migrationError && (
+                  <Button
+                    title="Retry Migration"
+                    variant="outline"
+                    size="medium"
+                    fullWidth
+                    onPress={() => {
+                      setMigrationDone(false);
+                      setMigrationError(null);
+                      setTimeout(() => runMigration(), 300);
+                    }}
+                    style={styles.migrationRetryButton}
+                  />
+                )}
+              </>
+            )}
+
+            {/* Loading spinner when migration is running */}
+            {!migrationDone && (
+              <ActivityIndicator
+                size="small"
+                color={colors.primary}
+                style={styles.migrationSpinner}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -428,5 +601,58 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     textAlign: 'center',
     lineHeight: 22,
+  },
+
+  // ── Migration dialog ──
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  migrationDialog: {
+    width: '100%',
+    borderRadius: BorderRadius.extraLarge,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    ...Shadows.large,
+  },
+  migrationIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
+  },
+  migrationTitle: {
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  migrationPhase: {
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+    lineHeight: 20,
+  },
+  progressBarBg: {
+    width: '100%',
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: Spacing.sm,
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  migrationButton: {
+    marginTop: Spacing.md,
+  },
+  migrationRetryButton: {
+    marginTop: Spacing.sm,
+  },
+  migrationSpinner: {
+    marginTop: Spacing.md,
   },
 });

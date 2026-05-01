@@ -19,9 +19,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Input, Button, Text } from '../../components/common';
-import { Colors, Spacing, BorderRadius, Typography, Layout } from '../../constants/theme';
+import { Colors, Spacing, BorderRadius } from '../../constants/theme';
 import { useAuth } from '../../context';
 import { useTheme } from '../../hooks';
 
@@ -51,9 +50,10 @@ function validateConfirmPassword(password: string, confirm: string): string | un
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+export const SignupScreen: React.FC<{ navigation: any; route?: any }> = ({ navigation, route }) => {
   const { signUp } = useAuth();
   const { colors } = useTheme();
+  const onSkip = route?.params?.onSkip;
 
   // Form state
   const [email, setEmail] = useState('');
@@ -72,7 +72,6 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   // ── Handlers ─────────────────────────────────────────────────────────────
 
   const handleSignup = useCallback(async () => {
-    // Run all validations
     const eErr = validateEmail(email);
     const pErr = validatePassword(password);
     const cErr = validateConfirmPassword(password, confirmPassword);
@@ -90,7 +89,6 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       if (!result.success) {
         setServerError(result.error?.message ?? 'Signup failed. Please try again.');
       }
-      // On success, AuthContext updates → navigation layer handles redirect
     } catch {
       setServerError('An unexpected error occurred. Please try again.');
     } finally {
@@ -112,7 +110,7 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
         >
           {/* Header */}
-          <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.header}>
+          <View style={styles.header}>
             <View style={[styles.iconContainer, { backgroundColor: colors.primary + '15' }]}>
               <Ionicons name="person-add" size={40} color={colors.primary} />
             </View>
@@ -122,11 +120,10 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <Text variant="regular" color={colors.textSecondary} style={styles.subtitle}>
               Sign up to enable cloud sync and keep your data safe
             </Text>
-          </Animated.View>
+          </View>
 
           {/* Form */}
-          <Animated.View entering={FadeInDown.delay(250).duration(500)} style={styles.form}>
-            {/* Server error banner */}
+          <View style={styles.form}>
             {serverError && (
               <View style={styles.errorBanner}>
                 <Ionicons name="alert-circle" size={18} color={Colors.error} />
@@ -171,7 +168,7 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               }
               rightIcon={
                 <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                   size={20}
                   color={colors.textSecondary}
                 />
@@ -198,7 +195,7 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               }
               rightIcon={
                 <Ionicons
-                  name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                  name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
                   size={20}
                   color={colors.textSecondary}
                 />
@@ -219,10 +216,10 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               style={styles.submitButton}
               accessibilityLabel="Create account"
             />
-          </Animated.View>
+          </View>
 
           {/* Footer */}
-          <Animated.View entering={FadeInDown.delay(400).duration(500)} style={styles.footer}>
+          <View style={styles.footer}>
             <Text variant="regular" color={colors.textSecondary}>
               Already have an account?{' '}
             </Text>
@@ -231,7 +228,17 @@ export const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 Log In
               </Text>
             </TouchableOpacity>
-          </Animated.View>
+          </View>
+
+          {/* Skip auth */}
+          {onSkip && (
+            <TouchableOpacity onPress={onSkip} activeOpacity={0.7} style={styles.skipButton}>
+              <Text variant="regular" color={colors.textSecondary}>
+                Continue without account
+              </Text>
+              <Ionicons name="arrow-forward" size={16} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -296,5 +303,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  skipButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.sm,
   },
 });
