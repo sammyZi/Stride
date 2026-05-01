@@ -41,6 +41,8 @@ export interface AuthResult {
   user?: AuthUser;
   session?: AuthSession;
   error?: AuthError;
+  /** True when signup succeeded but user must confirm their email before logging in. */
+  emailConfirmationRequired?: boolean;
 }
 
 /** Interface for the AuthService. */

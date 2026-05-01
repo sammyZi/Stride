@@ -16,6 +16,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Modal,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -51,7 +53,7 @@ function validateConfirmPassword(password: string, confirm: string): string | un
 // ── Component ────────────────────────────────────────────────────────────────
 
 export const SignupScreen: React.FC<{ navigation: any; route?: any }> = ({ navigation, route }) => {
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle } = useAuth();
   const { colors } = useTheme();
   const onSkip = route?.params?.onSkip;
 
@@ -68,6 +70,10 @@ export const SignupScreen: React.FC<{ navigation: any; route?: any }> = ({ navig
   const [confirmError, setConfirmError] = useState<string | undefined>();
   const [serverError, setServerError] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Email confirmation modal
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -86,9 +92,13 @@ export const SignupScreen: React.FC<{ navigation: any; route?: any }> = ({ navig
     setIsLoading(true);
     try {
       const result = await signUp(email.trim(), password);
-      if (!result.success) {
+      if (result.success && result.emailConfirmationRequired) {
+        // Email confirmation needed — show modal
+        setShowConfirmModal(true);
+      } else if (!result.success) {
         setServerError(result.error?.message ?? 'Signup failed. Please try again.');
       }
+      // If success with session, AuthContext handles navigation automatically
     } catch {
       setServerError('An unexpected error occurred. Please try again.');
     } finally {
@@ -96,13 +106,28 @@ export const SignupScreen: React.FC<{ navigation: any; route?: any }> = ({ navig
     }
   }, [email, password, confirmPassword, signUp]);
 
+  const handleGoogleSignup = useCallback(async () => {
+    setIsGoogleLoading(true);
+    setServerError(undefined);
+    try {
+      const result = await signInWithGoogle();
+      if (!result.success) {
+        setServerError(result.error?.message ?? 'Google sign-in failed. Please try again.');
+      }
+    } catch {
+      setServerError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  }, [signInWithGoogle]);
+
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -218,6 +243,29 @@ export const SignupScreen: React.FC<{ navigation: any; route?: any }> = ({ navig
             />
           </View>
 
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            <Text variant="small" color={colors.textSecondary} style={styles.dividerText}>or</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+          </View>
+
+          {/* Google Sign-In */}
+          <TouchableOpacity
+            style={[styles.googleButton, { borderColor: colors.border }]}
+            onPress={handleGoogleSignup}
+            disabled={isGoogleLoading || isLoading}
+            activeOpacity={0.7}
+          >
+            <Image 
+              source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }} 
+              style={{ width: 24, height: 24 }} 
+            />
+            <Text variant="regular" weight="semiBold" color={colors.textPrimary} style={{ marginLeft: 10 }}>
+              {isGoogleLoading ? 'Signing in...' : 'Continue with Google'}
+            </Text>
+          </TouchableOpacity>
+
           {/* Footer */}
           <View style={styles.footer}>
             <Text variant="regular" color={colors.textSecondary}>
@@ -229,18 +277,55 @@ export const SignupScreen: React.FC<{ navigation: any; route?: any }> = ({ navig
               </Text>
             </TouchableOpacity>
           </View>
-
-          {/* Skip auth */}
-          {onSkip && (
-            <TouchableOpacity onPress={onSkip} activeOpacity={0.7} style={styles.skipButton}>
-              <Text variant="regular" color={colors.textSecondary}>
-                Continue without account
-              </Text>
-              <Ionicons name="arrow-forward" size={16} color={colors.textSecondary} style={{ marginLeft: 4 }} />
-            </TouchableOpacity>
-          )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Fixed skip footer */}
+      {onSkip && (
+        <View style={[styles.skipFooter, { borderTopColor: colors.border }]}>
+          <TouchableOpacity onPress={onSkip} activeOpacity={0.7} style={styles.skipButton}>
+            <Text variant="regular" weight="semiBold" color={Colors.textSecondary} style={{ opacity: 0.7 }}>
+              Continue without account
+            </Text>
+            <Ionicons name="arrow-forward" size={16} color={Colors.textSecondary} style={{ marginLeft: 6, opacity: 0.7 }} />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Email confirmation modal */}
+      <Modal
+        visible={showConfirmModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowConfirmModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
+            <View style={[styles.modalIcon, { backgroundColor: Colors.success + '15' }]}>
+              <Ionicons name="mail-outline" size={40} color={Colors.success} />
+            </View>
+            <Text variant="large" weight="bold" color={colors.textPrimary} style={styles.modalTitle}>
+              Check Your Email
+            </Text>
+            <Text variant="regular" color={colors.textSecondary} style={styles.modalMessage}>
+              We've sent a confirmation link to{'\n'}
+              <Text variant="regular" weight="semiBold" color={colors.textPrimary}>{email}</Text>
+              {'\n\n'}Please confirm your email to complete sign up, then come back and log in.
+            </Text>
+            <Button
+              title="Go to Login"
+              variant="primary"
+              size="medium"
+              fullWidth
+              onPress={() => {
+                setShowConfirmModal(false);
+                navigation.navigate('Login');
+              }}
+              style={styles.modalButton}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -299,16 +384,65 @@ const styles = StyleSheet.create({
   submitButton: {
     marginTop: Spacing.md,
   },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
+  dividerText: {
+    marginHorizontal: Spacing.md,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: BorderRadius.medium,
+    paddingVertical: 14,
+    marginBottom: Spacing.xl,
+  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  skipFooter: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
   skipButton: {
     flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xl,
   },
+  modalCard: {
+    width: '100%',
+    borderRadius: BorderRadius.extraLarge,
+    padding: Spacing.xl,
+    alignItems: 'center',
+  },
+  modalIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
+  },
+  modalTitle: { marginBottom: Spacing.sm, textAlign: 'center' },
+  modalMessage: { textAlign: 'center', lineHeight: 20, marginBottom: Spacing.lg },
+  modalButton: { marginTop: Spacing.sm },
 });

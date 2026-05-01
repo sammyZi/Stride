@@ -41,7 +41,7 @@ const MIGRATION_DONE_KEY = '@cloud_migration_done';
 // ── Component ────────────────────────────────────────────────────────────────
 
 export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const { user, isAuthenticated, signOut } = useAuth();
+  const { user, isAuthenticated, signOut, signInWithGoogle } = useAuth();
   const { colors } = useTheme();
 
   // State
@@ -230,6 +230,22 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
           <Text variant="regular" color={colors.textSecondary} style={styles.emptySubtitle}>
             Sign in to sync your data across devices and keep it safe in the cloud.
           </Text>
+
+          <View style={{ marginTop: Spacing.xl, width: '100%', paddingHorizontal: Spacing.xl }}>
+            <Button
+              title="Log In / Sign Up"
+              variant="primary"
+              size="large"
+              fullWidth
+              onPress={async () => {
+                // Remove the local-only flag from storage
+                await AsyncStorage.removeItem('@auth_skipped');
+                
+                // Tell AppNavigator to drop the tabs and show the true Auth stack
+                require('react-native').DeviceEventEmitter.emit('RESET_AUTH_SKIPPED');
+              }}
+            />
+          </View>
         </View>
       </SafeAreaView>
     );

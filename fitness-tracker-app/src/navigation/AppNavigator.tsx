@@ -29,6 +29,7 @@ import {
   GoalsScreen,
   SignupScreen,
   LoginScreen,
+  ForgotPasswordScreen,
   AccountSettingsScreen,
 } from '../screens';
 import { Colors } from '../constants/theme';
@@ -74,6 +75,10 @@ const AuthStackNavigator: React.FC<{
         name="Signup"
         component={SignupScreen}
         initialParams={{ onSkip }}
+      />
+      <AuthStack.Screen
+        name="ForgotPassword"
+        component={ForgotPasswordScreen}
       />
     </AuthStack.Navigator>
   );
@@ -237,6 +242,13 @@ const AppNavigatorComponent: React.FC = () => {
     AsyncStorage.getItem(AUTH_SKIPPED_KEY).then((v) => {
       setAuthSkipped(v === 'true');
     });
+
+    // Listen for events to instantly un-skip auth and show login
+    const sub = require('react-native').DeviceEventEmitter.addListener('RESET_AUTH_SKIPPED', () => {
+      setAuthSkipped(false);
+    });
+
+    return () => sub.remove();
   }, []);
 
   const handleSkip = useCallback(async () => {
