@@ -15,6 +15,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,7 +42,7 @@ function validatePassword(password: string): string | undefined {
 // ── Component ────────────────────────────────────────────────────────────────
 
 export const LoginScreen: React.FC<{ navigation: any; route?: any }> = ({ navigation, route }) => {
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
   const { colors } = useTheme();
   const onSkip = route?.params?.onSkip;
 
@@ -55,6 +56,7 @@ export const LoginScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
   const [passwordError, setPasswordError] = useState<string | undefined>();
   const [serverError, setServerError] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -80,6 +82,21 @@ export const LoginScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
       setIsLoading(false);
     }
   }, [email, password, signIn]);
+
+  const handleGoogleLogin = useCallback(async () => {
+    setIsGoogleLoading(true);
+    setServerError(undefined);
+    try {
+      const result = await signInWithGoogle();
+      if (!result.success) {
+        setServerError(result.error?.message ?? 'Google login failed. Please try again.');
+      }
+    } catch {
+      setServerError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  }, [signInWithGoogle]);
 
   // ── Render ───────────────────────────────────────────────────────────────
 
@@ -174,7 +191,40 @@ export const LoginScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
               style={styles.submitButton}
               accessibilityLabel="Log in"
             />
+
+            {/* Forgot password */}
+            <TouchableOpacity
+              onPress={() => navigation.navigate('ForgotPassword')}
+              style={styles.forgotButton}
+            >
+              <Text variant="small" weight="semiBold" color={colors.primary}>
+                Forgot Password?
+              </Text>
+            </TouchableOpacity>
           </View>
+
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            <Text variant="small" color={colors.textSecondary} style={styles.dividerText}>or</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+          </View>
+
+          {/* Google Sign-In */}
+          <TouchableOpacity
+            style={[styles.googleButton, { borderColor: colors.border }]}
+            onPress={handleGoogleLogin}
+            disabled={isGoogleLoading || isLoading}
+            activeOpacity={0.7}
+          >
+            <Image 
+              source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }} 
+              style={{ width: 24, height: 24 }} 
+            />
+            <Text variant="regular" weight="semiBold" color={colors.textPrimary} style={{ marginLeft: 10 }}>
+              {isGoogleLoading ? 'Signing in...' : 'Continue with Google'}
+            </Text>
+          </TouchableOpacity>
 
           {/* Footer */}
           <View style={styles.footer}>
@@ -187,18 +237,20 @@ export const LoginScreen: React.FC<{ navigation: any; route?: any }> = ({ naviga
               </Text>
             </TouchableOpacity>
           </View>
-
-          {/* Skip auth */}
-          {onSkip && (
-            <TouchableOpacity onPress={onSkip} activeOpacity={0.7} style={styles.skipButton}>
-              <Text variant="regular" color={colors.textSecondary}>
-                Continue without account
-              </Text>
-              <Ionicons name="arrow-forward" size={16} color={colors.textSecondary} style={{ marginLeft: 4 }} />
-            </TouchableOpacity>
-          )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Fixed skip footer */}
+      {onSkip && (
+        <View style={[styles.skipFooter, { borderTopColor: colors.border }]}>
+          <TouchableOpacity onPress={onSkip} activeOpacity={0.7} style={styles.skipButton}>
+            <Text variant="regular" weight="semiBold" color={Colors.textSecondary} style={{ opacity: 0.7 }}>
+              Continue without account
+            </Text>
+            <Ionicons name="arrow-forward" size={16} color={Colors.textSecondary} style={{ marginLeft: 6, opacity: 0.7 }} />
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -257,16 +309,46 @@ const styles = StyleSheet.create({
   submitButton: {
     marginTop: Spacing.md,
   },
+  forgotButton: {
+    alignSelf: 'flex-end',
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
+  dividerText: {
+    marginHorizontal: Spacing.md,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: BorderRadius.medium,
+    paddingVertical: 14,
+    marginBottom: Spacing.xl,
+  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // Fixed skip footer
+  skipFooter: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
   skipButton: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    paddingVertical: 4,
   },
 });

@@ -11,6 +11,8 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
 import { supabase } from '../supabase';
 import {
   AuthUser,
@@ -98,13 +100,22 @@ export class AuthService implements IAuthService {
         return { success: false, error: mapAuthError(error.message) };
       }
 
-      if (!data.user || !data.session) {
+      if (!data.user) {
         return {
           success: false,
           error: {
             code: 'AUTH_UNKNOWN_ERROR',
-            message: 'Signup succeeded but no session was created',
+            message: 'Signup failed. Please try again.',
           },
+        };
+      }
+
+      // Email confirmation required — Supabase returns user but no session
+      if (!data.session) {
+        return {
+          success: true,
+          user: toAuthUser(data.user),
+          emailConfirmationRequired: true,
         };
       }
 
@@ -166,6 +177,86 @@ export class AuthService implements IAuthService {
       return { success: true, user, session };
     } catch (err: any) {
       logger.error('Unexpected error during login', err);
+      return { success: false, error: mapAuthError(err?.message ?? 'Unknown error') };
+    }
+  }
+
+  // ── Google OAuth ───────────────────────────────────────────────────────
+
+  /**
+   * Sign in with Google using Supabase's OAuth flow.
+   * Opens the browser for Google login and returns a session.
+   */
+  async signInWithGoogle(): Promise<AuthResult> {
+    try {
+      // Let Expo automatically handle the scheme (crucial for Expo Go vs Standalone)
+      const redirectUri = makeRedirectUri();
+      console.log('👉 GENERATED REDIRECT URI FOR SUPABASE:', redirectUri);
+
+      // Get the OAuth URL from Supabase
+      const { data: oauthData, error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUri,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (oauthError || !oauthData?.url) {
+        logger.warn('Google OAuth URL generation failed', oauthError);
+        return {
+          success: false,
+          error: { code: 'AUTH_UNKNOWN_ERROR', message: oauthError?.message ?? 'Failed to start Google login' },
+        };
+      }
+
+      // Open the browser for Google login
+      const result = await WebBrowser.openAuthSessionAsync(oauthData.url, redirectUri);
+
+      if (result.type !== 'success' || !result.url) {
+        return {
+          success: false,
+          error: { code: 'AUTH_UNKNOWN_ERROR', message: 'Google login was cancelled' },
+        };
+      }
+
+      // Extract tokens from the redirect URL fragment
+      const url = new URL(result.url);
+      const params = new URLSearchParams(url.hash.substring(1)); // remove #
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+
+      if (!accessToken) {
+        return {
+          success: false,
+          error: { code: 'AUTH_UNKNOWN_ERROR', message: 'No access token received from Google' },
+        };
+      }
+
+      // Set the session in Supabase
+      const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken ?? '',
+      });
+
+      if (sessionError || !sessionData.session || !sessionData.user) {
+        logger.warn('Failed to set Google session', sessionError);
+        return {
+          success: false,
+          error: { code: 'AUTH_UNKNOWN_ERROR', message: sessionError?.message ?? 'Failed to establish session' },
+        };
+      }
+
+      const user = toAuthUser(sessionData.user);
+      const session = toAuthSession(sessionData.session);
+
+      await this.persistSession(session);
+      this._currentUser = user;
+      this._currentSession = session;
+
+      return { success: true, user, session };
+    } catch (err: any) {
+      logger.error('Unexpected error during Google sign-in', err);
       return { success: false, error: mapAuthError(err?.message ?? 'Unknown error') };
     }
   }
@@ -258,6 +349,32 @@ export class AuthService implements IAuthService {
       // Best-effort — always clear local state even if Supabase call fails.
     }
     await this.clearSession();
+  }
+
+  // ── Password Reset ─────────────────────────────────────────────────────
+
+  /**
+   * Send a password reset email to the given address.
+   */
+  async resetPassword(email: string): Promise<{ success: boolean; error?: AuthError }> {
+    if (!email || !EMAIL_REGEX.test(email)) {
+      return {
+        success: false,
+        error: { code: 'AUTH_INVALID_EMAIL', message: 'Please enter a valid email address' },
+      };
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) {
+        logger.warn('Password reset failed', error);
+        return { success: false, error: mapAuthError(error.message) };
+      }
+      return { success: true };
+    } catch (err: any) {
+      logger.error('Unexpected error during password reset', err);
+      return { success: false, error: mapAuthError(err?.message ?? 'Unknown error') };
+    }
   }
 
   // ── State Accessors ────────────────────────────────────────────────────

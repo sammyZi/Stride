@@ -39,6 +39,10 @@ export interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<AuthResult>;
   /** Log out and clear session. */
   signOut: () => Promise<void>;
+  /** Send a password reset email. */
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: { code: string; message: string } }>;
+  /** Sign in with Google via Supabase OAuth. */
+  signInWithGoogle: () => Promise<AuthResult>;
 }
 
 // ── Singleton AuthService instance ──────────────────────────────────────────
@@ -119,6 +123,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setSession(null);
   }, []);
 
+  const resetPassword = useCallback(async (email: string) => {
+    return authService.resetPassword(email);
+  }, []);
+
+  const signInWithGoogle = useCallback(async (): Promise<AuthResult> => {
+    const result = await authService.signInWithGoogle();
+    if (result.success && result.user && result.session) {
+      setUser(result.user);
+      setSession(result.session);
+    }
+    return result;
+  }, []);
+
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
@@ -131,6 +148,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         signUp,
         signIn,
         signOut,
+        resetPassword,
+        signInWithGoogle,
       }}
     >
       {children}
