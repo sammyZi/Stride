@@ -64,6 +64,28 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Account Section */}
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Account</Text>
+
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => navigation.navigate('AccountSettings')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingInfo}>
+              <Ionicons name="person-circle-outline" size={24} color={Colors.primary} />
+              <View style={styles.settingTextContainer}>
+                <Text style={styles.settingLabel}>Account & Cloud Sync</Text>
+                <Text style={styles.settingDescription}>
+                  Manage your account and data sync
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
         {/* Background Tracking Guide */}
         <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Help & Support</Text>

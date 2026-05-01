@@ -22,6 +22,7 @@ export { StatsScreen } from './stats/StatsScreen';
 // Goals screens
 export { GoalsScreen } from './goals/GoalsScreen';
 
+// Auth screens
+export { SignupScreen, LoginScreen, AccountSettingsScreen } from './auth';
+
 // Screens will be exported here as they are created
-// export { LoginScreen } from './auth/LoginScreen';
-// etc.
