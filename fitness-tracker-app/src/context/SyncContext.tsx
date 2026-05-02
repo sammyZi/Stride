@@ -188,6 +188,10 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         await SyncService.initialize(user.id);
         console.log('[Sync] SyncService initialized');
+
+        // Download cloud data (restores profile/activities/goals on fresh install)
+        await SyncService.downloadAllData();
+        console.log('[Sync] Cloud data downloaded');
       } catch (err) {
         console.error('[Sync] Auto-init failed:', err);
       }

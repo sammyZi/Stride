@@ -328,6 +328,7 @@ class SyncService {
 
         if (error) {
           failed++;
+          console.error(`[Sync] Raw Supabase error for goal ${goal.id}:`, JSON.stringify(error));
           const mappedError = mapSyncError(error.message, 'upload');
           logger.warn(`Failed to sync goal ${goal.id}`, mappedError);
           errors.push({ itemId: goal.id, operation: 'upload', code: mappedError.code, error: mappedError.message, timestamp: Date.now() });
@@ -587,13 +588,21 @@ class SyncService {
         // No local profile — use cloud version
         await StorageService.saveUserProfile(remoteProfile);
       } else {
-        // Both exist — resolve conflict using updatedAt
-        const winner = this.resolveConflict(
-          { ...localProfile, _timestamp: localProfile.updatedAt },
-          { ...remoteProfile, _timestamp: remoteProfile.updatedAt },
-        );
-        if (winner === remoteProfile) {
+        // If the local profile is just the default placeholder, always prefer cloud
+        const isLocalDefault = localProfile.name === 'Fitness Enthusiast'
+          && !localProfile.weight && !localProfile.height && !localProfile.profilePictureUri;
+
+        if (isLocalDefault) {
           await StorageService.saveUserProfile(remoteProfile);
+        } else {
+          // Both are real — resolve conflict using updatedAt
+          const winner = this.resolveConflict(
+            { ...localProfile, _timestamp: localProfile.updatedAt },
+            { ...remoteProfile, _timestamp: remoteProfile.updatedAt },
+          );
+          if (winner === remoteProfile) {
+            await StorageService.saveUserProfile(remoteProfile);
+          }
         }
       }
     } catch (err) {
@@ -713,8 +722,12 @@ class SyncService {
       try {
         await this.executeSyncOperation(entityType, operation, data);
         return true;
-      } catch (err) {
+      } catch (err: any) {
         attempt++;
+        if (attempt >= MAX_RETRIES) {
+          console.error(`[Sync] executeWithRetry exhausted for ${entityType}/${operation}:`,
+            JSON.stringify({ message: err?.message, code: err?.code, details: err?.details, hint: err?.hint }));
+        }
         if (attempt < MAX_RETRIES) {
           await sleep(delay);
           delay *= 2; // exponential backoff
@@ -781,6 +794,7 @@ class SyncService {
    * Process all queued operations — retry each with backoff.
    * Successfully completed operations are removed from the queue;
    * those that fail again stay queued with an incremented retryCount.
+   * Operations that have been retried more than 15 times are purged.
    */
   async processQueue(): Promise<void> {
     if (!this._userId || !this._initialized) return;
@@ -791,6 +805,13 @@ class SyncService {
     logger.log(`SyncService: processing ${ops.length} queued operation(s)`);
 
     for (const op of ops) {
+      // Purge permanently stuck operations
+      if (op.retryCount >= 15) {
+        logger.warn(`SyncService: purging stale operation ${op.id} after ${op.retryCount} retries`);
+        await this._queue.remove(op.id);
+        continue;
+      }
+
       const success = await this.executeWithRetry(op.type, op.operation, op.data);
 
       if (success) {
@@ -807,6 +828,14 @@ class SyncService {
    */
   async retryFailedOperations(): Promise<void> {
     return this.processQueue();
+  }
+
+  /**
+   * Clear the entire sync queue (e.g. after fixing data issues).
+   */
+  async clearQueue(): Promise<void> {
+    await this._queue.clear();
+    logger.log('SyncService: queue cleared');
   }
 
   // ── Background sync ────────────────────────────────────────────────────

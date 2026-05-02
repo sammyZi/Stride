@@ -10,23 +10,23 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Platform,
-  StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, ConfirmModal } from '../../components/common';
-import { Card } from '../../components/common/Card';
 import { GoalCard } from '../../components/goals/GoalCard';
 import { CreateGoalModal } from '../../components/goals/CreateGoalModal';
 import { useGoals } from '../../hooks/useGoals';
 import { useSettings } from '../../context';
 import { useConfirmModal } from '../../hooks/useConfirmModal';
+import { useTheme } from '../../hooks';
 import { Goal } from '../../types';
 import { Colors, Spacing, BorderRadius } from '../../constants/theme';
 
 export const GoalsScreen: React.FC = () => {
   const { activeGoals, achievedGoals, loading, createGoal, updateGoal, deleteGoal, refresh } = useGoals();
   const { settings } = useSettings();
+  const { colors } = useTheme();
   const { modalState, showConfirm, hideModal } = useConfirmModal();
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -162,63 +162,65 @@ export const GoalsScreen: React.FC = () => {
   };
 
   const hasGoals = activeGoals.length > 0 || achievedGoals.length > 0;
+  const totalGoals = activeGoals.length + achievedGoals.length;
 
-  const renderSummaryStrip = () => {
+  // ── Summary cards ──────────────────────────────────────────────────────
+
+  const renderSummary = () => {
     if (!hasGoals) return null;
-    const totalGoals = activeGoals.length + achievedGoals.length;
+
+    const stats = [
+      { label: 'Active', value: activeGoals.length, color: colors.primary, icon: 'flame' as const },
+      { label: 'Achieved', value: achievedGoals.length, color: Colors.success, icon: 'trophy' as const },
+      { label: 'Total', value: totalGoals, color: Colors.warning, icon: 'flag' as const },
+    ];
+
     return (
-      <Card variant="outlined" style={styles.summaryCard}>
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryItem}>
-            <View style={[styles.summaryDot, { backgroundColor: Colors.primary }]} />
-            <Text variant="large" weight="bold" color={Colors.textPrimary}>
-              {activeGoals.length}
+      <View style={styles.summaryRow}>
+        {stats.map((stat, i) => (
+          <View key={stat.label} style={[styles.statCard, { backgroundColor: colors.surface }]}>
+            <View style={[styles.statIconBg, { backgroundColor: stat.color + '18' }]}>
+              <Ionicons name={stat.icon} size={18} color={stat.color} />
+            </View>
+            <Text variant="large" weight="bold" color={colors.textPrimary}>
+              {stat.value}
             </Text>
-            <Text variant="extraSmall" color={Colors.textSecondary}>Active</Text>
-          </View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryItem}>
-            <View style={[styles.summaryDot, { backgroundColor: Colors.success }]} />
-            <Text variant="large" weight="bold" color={Colors.textPrimary}>
-              {achievedGoals.length}
+            <Text variant="extraSmall" color={colors.textSecondary}>
+              {stat.label}
             </Text>
-            <Text variant="extraSmall" color={Colors.textSecondary}>Achieved</Text>
           </View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryItem}>
-            <View style={[styles.summaryDot, { backgroundColor: Colors.warning }]} />
-            <Text variant="large" weight="bold" color={Colors.textPrimary}>
-              {totalGoals}
-            </Text>
-            <Text variant="extraSmall" color={Colors.textSecondary}>Total</Text>
-          </View>
-        </View>
-      </Card>
+        ))}
+      </View>
     );
   };
 
+  // ── Empty state ────────────────────────────────────────────────────────
+
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <View style={styles.emptyIcon}>
-        <Ionicons name="flag-outline" size={64} color={Colors.disabled} />
+      <View style={[styles.emptyIcon, { backgroundColor: colors.primary + '12' }]}>
+        <Ionicons name="flag-outline" size={56} color={colors.primary} />
       </View>
-      <Text variant="large" weight="semiBold" style={styles.emptyTitle}>
+      <Text variant="large" weight="semiBold" color={colors.textPrimary} style={styles.emptyTitle}>
         No Goals Yet
       </Text>
-      <Text variant="medium" color={Colors.textSecondary} align="center" style={styles.emptyText}>
-        Set goals to stay motivated and track your progress!
+      <Text variant="medium" color={colors.textSecondary} align="center" style={styles.emptyText}>
+        Set goals to stay motivated and{'\n'}track your progress!
       </Text>
       <TouchableOpacity
-        style={styles.createButton}
+        style={[styles.createButton, { backgroundColor: colors.primary }]}
         onPress={() => setCreateModalVisible(true)}
+        activeOpacity={0.8}
       >
-        <Ionicons name="add" size={24} color={Colors.surface} />
-        <Text variant="medium" weight="semiBold" color={Colors.surface}>
+        <Ionicons name="add-circle-outline" size={22} color="#fff" />
+        <Text variant="medium" weight="semiBold" color="#fff">
           Create Your First Goal
         </Text>
       </TouchableOpacity>
     </View>
   );
+
+  // ── Active goals ──────────────────────────────────────────────────────
 
   const renderActiveGoals = () => {
     if (activeGoals.length === 0) return null;
@@ -226,12 +228,17 @@ export const GoalsScreen: React.FC = () => {
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text variant="mediumLarge" weight="semiBold" color={Colors.textPrimary}>
-            Active Goals
-          </Text>
-          <Text variant="small" color={Colors.textSecondary}>
-            {activeGoals.length} {activeGoals.length === 1 ? 'goal' : 'goals'}
-          </Text>
+          <View style={styles.sectionTitleRow}>
+            <View style={[styles.sectionDot, { backgroundColor: colors.primary }]} />
+            <Text variant="medium" weight="semiBold" color={colors.textPrimary}>
+              Active Goals
+            </Text>
+          </View>
+          <View style={[styles.countBadge, { backgroundColor: colors.primary + '18' }]}>
+            <Text variant="extraSmall" weight="bold" color={colors.primary}>
+              {activeGoals.length}
+            </Text>
+          </View>
         </View>
         <View style={styles.goalsGrid}>
           {activeGoals.map((goal) => (
@@ -247,20 +254,22 @@ export const GoalsScreen: React.FC = () => {
     );
   };
 
+  // ── Achieved goals ────────────────────────────────────────────────────
+
   const renderAchievedGoals = () => {
     if (achievedGoals.length === 0) return null;
 
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <View style={styles.achievedTitleRow}>
-            <Ionicons name="trophy" size={18} color={Colors.warning} />
-            <Text variant="mediumLarge" weight="semiBold" color={Colors.textPrimary}>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="trophy" size={16} color={Colors.warning} />
+            <Text variant="medium" weight="semiBold" color={colors.textPrimary}>
               Achieved
             </Text>
           </View>
-          <View style={styles.achievementBadge}>
-            <Text variant="small" weight="bold" color={Colors.warning}>
+          <View style={[styles.countBadge, { backgroundColor: Colors.warning + '18' }]}>
+            <Text variant="extraSmall" weight="bold" color={Colors.warning}>
               {achievedGoals.length}
             </Text>
           </View>
@@ -276,7 +285,7 @@ export const GoalsScreen: React.FC = () => {
           ))}
         </View>
         {achievedGoals.length > 5 && (
-          <Text variant="small" color={Colors.textSecondary} align="center" style={styles.moreText}>
+          <Text variant="small" color={colors.textSecondary} align="center" style={styles.moreText}>
             +{achievedGoals.length - 5} more achieved goals
           </Text>
         )}
@@ -284,19 +293,22 @@ export const GoalsScreen: React.FC = () => {
     );
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text variant="large" weight="bold" color={Colors.textPrimary}>
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
+        <Text variant="large" weight="bold" color={colors.textPrimary}>
           Goals
         </Text>
         {hasGoals && (
           <TouchableOpacity
-            style={styles.addButton}
+            style={[styles.addButton, { backgroundColor: colors.primary }]}
             onPress={() => setCreateModalVisible(true)}
+            activeOpacity={0.8}
           >
-            <Ionicons name="add" size={20} color={Colors.surface} />
+            <Ionicons name="add" size={22} color="#fff" />
           </TouchableOpacity>
         )}
       </View>
@@ -309,16 +321,17 @@ export const GoalsScreen: React.FC = () => {
           <RefreshControl
             refreshing={loading}
             onRefresh={refresh}
-            tintColor={Colors.primary}
-            colors={[Colors.primary]}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
       >
         {hasGoals ? (
           <>
-            {renderSummaryStrip()}
+            {renderSummary()}
             {renderActiveGoals()}
             {renderAchievedGoals()}
+            <View style={{ height: 32 }} />
           </>
         ) : (
           renderEmptyState()
@@ -368,31 +381,27 @@ export const GoalsScreen: React.FC = () => {
         loadingMessage={modalState.loadingMessage}
         onRequestClose={hideModal}
       />
-    </View>
+    </SafeAreaView>
   );
 };
+
+// ── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 44,
   },
   header: {
-    height: 60,
+    height: 56,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingHorizontal: 20,
   },
   addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.primary,
+    width: 38,
+    height: 38,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -400,90 +409,96 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.lg,
+    paddingHorizontal: 16,
   },
-  summaryCard: {
-    marginBottom: Spacing.xl,
-    padding: Spacing.lg,
-  },
+
+  // ── Summary ────────────────────────────────────────────────────────────
   summaryRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
+    gap: 10,
+    marginBottom: 24,
   },
-  summaryItem: {
+  statCard: {
+    flex: 1,
     alignItems: 'center',
+    paddingVertical: 16,
+    borderRadius: 16,
     gap: 4,
   },
-  summaryDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  statIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 4,
   },
-  summaryDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: Colors.border,
-  },
+
+  // ── Sections ───────────────────────────────────────────────────────────
   section: {
-    marginBottom: Spacing.xl,
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.md,
+    marginBottom: 12,
+    paddingHorizontal: 4,
   },
-  achievedTitleRow: {
+  sectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: 8,
   },
-  achievementBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: `${Colors.warning}20`,
+  sectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  countBadge: {
+    minWidth: 26,
+    height: 26,
+    borderRadius: 13,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 8,
   },
   goalsGrid: {
-    gap: Spacing.md,
+    gap: 12,
   },
   moreText: {
     marginTop: Spacing.md,
   },
+
+  // ── Empty state ────────────────────────────────────────────────────────
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.xxxl,
-    paddingHorizontal: Spacing.xl,
+    paddingVertical: 80,
+    paddingHorizontal: 32,
   },
   emptyIcon: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: `${Colors.disabled}20`,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: 24,
   },
   emptyTitle: {
-    marginBottom: Spacing.md,
+    marginBottom: 8,
   },
   emptyText: {
-    lineHeight: 24,
-    marginBottom: Spacing.xl,
+    lineHeight: 22,
+    marginBottom: 32,
   },
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.large,
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 16,
   },
 });
