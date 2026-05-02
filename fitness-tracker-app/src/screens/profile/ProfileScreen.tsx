@@ -7,7 +7,7 @@
  * - Quick stats summary
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -20,7 +20,17 @@ import {
   Platform,
   RefreshControl,
 } from 'react-native';
+
+/** Generate a UUID v4 string. */
+const generateUUID = (): string => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Text, ConfirmModal } from '../../components/common';
@@ -64,9 +74,13 @@ export const ProfileScreen: React.FC = () => {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
+  // Reload profile every time the screen is focused
+  // (ensures cloud-synced data appears after download)
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+    }, [])
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -87,14 +101,18 @@ export const ProfileScreen: React.FC = () => {
         setEditWeight(savedProfile.weight?.toString() || '');
         setEditHeight(savedProfile.height?.toString() || '');
       } else {
-        // Create default profile
+        // Create default profile — suppress sync so this placeholder
+        // doesn't overwrite the real profile in Supabase.
+        // downloadAllData() will replace it with the cloud version.
         const defaultProfile: UserProfile = {
-          id: Date.now().toString(),
+          id: generateUUID(),
           name: 'Fitness Enthusiast',
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
+        StorageService.suppressSync();
         await StorageService.saveUserProfile(defaultProfile);
+        StorageService.resumeSync();
         setProfile(defaultProfile);
         setEditName(defaultProfile.name);
       }
