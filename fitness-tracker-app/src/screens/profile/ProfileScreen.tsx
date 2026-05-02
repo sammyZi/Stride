@@ -39,6 +39,7 @@ import { Card } from '../../components/common/Card';
 import { StatCard } from '../../components/stats/StatCard';
 import { PersonalRecordsCard } from '../../components/stats/PersonalRecordsCard';
 import { useConfirmModal } from '../../hooks/useConfirmModal';
+import { useTheme } from '../../hooks';
 import { useStatistics } from '../../hooks/useStatistics';
 import { Colors, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import StorageService from '../../services/storage/StorageService';
@@ -57,6 +58,7 @@ const TABS: { key: TabType; label: string }[] = [
 export const ProfileScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('week');
   const { modalState, showConfirm, hideModal } = useConfirmModal();
+  const { colors } = useTheme();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [allActivities, setAllActivities] = useState<Activity[]>([]);
@@ -332,77 +334,80 @@ export const ProfileScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text variant="large" weight="bold" color={Colors.textPrimary}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      {/* ── Header ────────────────────────────────────────────────── */}
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
+        <Text variant="large" weight="bold" color={colors.textPrimary}>
           Profile & Stats
         </Text>
       </View>
 
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={Colors.primary}
+            tintColor={colors.primary}
           />
         }
       >
-        {/* Profile Picture and Name */}
-        <Card variant="outlined" style={styles.profileCard}>
-          <View style={styles.profileHeader}>
-            <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarContainer}>
-              {profile?.profilePictureUri ? (
-                <Image
-                  source={{ uri: profile.profilePictureUri }}
-                  style={styles.avatar}
-                />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="person" size={40} color={Colors.primary} />
-                </View>
-              )}
-              <View style={styles.editBadge}>
-                <Ionicons name="camera" size={14} color={Colors.surface} />
+        {/* ── Profile Hero ──────────────────────────────────────── */}
+        <View style={[styles.profileHero, { backgroundColor: colors.surface }]}>
+          <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarContainer}>
+            {profile?.profilePictureUri ? (
+              <Image
+                source={{ uri: profile.profilePictureUri }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary + '18' }]}>
+                <Ionicons name="person" size={44} color={colors.primary} />
               </View>
-            </TouchableOpacity>
-
-            <View style={styles.profileInfo}>
-              <Text variant="medium" weight="bold" color={Colors.textPrimary}>
-                {profile?.name}
-              </Text>
-              {profile?.weight && (
-                <Text variant="small" color={Colors.textSecondary}>
-                  {profile.weight} kg
-                  {profile.height && ` • ${profile.height} cm`}
-                </Text>
-              )}
+            )}
+            <View style={[styles.editBadge, { backgroundColor: colors.primary, borderColor: colors.surface }]}>
+              <Ionicons name="camera" size={13} color="#fff" />
             </View>
+          </TouchableOpacity>
 
-            <TouchableOpacity onPress={openEditModal} style={styles.editButton}>
-              <Ionicons name="create-outline" size={20} color={Colors.primary} />
-            </TouchableOpacity>
-          </View>
-        </Card>
-
-        {/* Statistics Section */}
-        <View style={styles.statsSection}>
-          <Text variant="medium" weight="semiBold" style={styles.sectionTitle}>
-            Statistics
+          <Text variant="large" weight="bold" color={colors.textPrimary} style={{ marginTop: 14 }}>
+            {profile?.name}
           </Text>
-          
+
+          {(profile?.weight || profile?.height) && (
+            <Text variant="small" color={colors.textSecondary} style={{ marginTop: 2 }}>
+              {profile?.weight ? `${profile.weight} kg` : ''}
+              {profile?.weight && profile?.height ? '  •  ' : ''}
+              {profile?.height ? `${profile.height} cm` : ''}
+            </Text>
+          )}
+
+          <TouchableOpacity
+            onPress={openEditModal}
+            style={[styles.editProfileBtn, { borderColor: colors.primary + '40' }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="create-outline" size={16} color={colors.primary} />
+            <Text variant="small" weight="semiBold" color={colors.primary}>Edit Profile</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Statistics Section ─────────────────────────────────── */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.primary }]}>Statistics</Text>
+
           {renderTabBar()}
-          
+
           {statsLoading && !stats ? (
             <View style={styles.statsLoading}>
-              <Text variant="small" color={Colors.textSecondary}>Loading stats...</Text>
+              <Text variant="small" color={colors.textSecondary}>Loading stats...</Text>
             </View>
           ) : stats && stats.totalActivities > 0 ? (
             <>
               {renderStatsCards()}
-              
+
               {/* Personal Records */}
               {stats.personalRecords && (
                 <View style={styles.recordsContainer}>
@@ -411,52 +416,50 @@ export const ProfileScreen: React.FC = () => {
               )}
             </>
           ) : (
-            <View style={styles.emptyStats}>
-              <Ionicons name="stats-chart-outline" size={48} color={Colors.textSecondary} />
-              <Text variant="medium" color={Colors.textSecondary} align="center" style={styles.emptyText}>
-                No activities yet. Start tracking to see your stats!
+            <View style={[styles.emptyStats, { backgroundColor: colors.surface }]}>
+              <View style={[styles.emptyStatsIcon, { backgroundColor: colors.primary + '12' }]}>
+                <Ionicons name="stats-chart-outline" size={36} color={colors.primary} />
+              </View>
+              <Text variant="medium" weight="medium" color={colors.textSecondary} align="center">
+                No activities yet
+              </Text>
+              <Text variant="small" color={colors.textSecondary} align="center">
+                Start tracking to see your stats!
               </Text>
             </View>
           )}
         </View>
-
 
         {/* Progress Charts */}
         {allActivities.length > 0 && (
           <ProgressChartCard activities={allActivities} units={settings?.units || 'metric'} />
         )}
 
-        {/* Profile Details */}
-        <View style={styles.detailsContainer}>
-          <Text variant="medium" weight="semiBold" style={styles.sectionTitle}>
-            Details
-          </Text>
+        {/* ── Profile Details ───────────────────────────────────── */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.primary }]}>Details</Text>
 
-          <Card variant="outlined" style={styles.detailsCard}>
-            <View style={styles.detailRow}>
-              <View style={styles.detailIcon}>
-                <Ionicons name="person-outline" size={18} color={Colors.primary} />
+          <View style={[styles.detailsCard, { backgroundColor: colors.surface }]}>
+            <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+              <View style={[styles.detailIcon, { backgroundColor: colors.primary + '15' }]}>
+                <Ionicons name="person-outline" size={18} color={colors.primary} />
               </View>
               <View style={styles.detailContent}>
-                <Text variant="small" color={Colors.textSecondary}>
-                  Name
-                </Text>
-                <Text variant="regular" weight="medium" color={Colors.textPrimary}>
+                <Text variant="extraSmall" color={colors.textSecondary}>Name</Text>
+                <Text variant="medium" weight="medium" color={colors.textPrimary}>
                   {profile?.name}
                 </Text>
               </View>
             </View>
 
             {profile?.weight && (
-              <View style={styles.detailRow}>
-                <View style={styles.detailIcon}>
-                  <Ionicons name="scale-outline" size={18} color={Colors.primary} />
+              <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+                <View style={[styles.detailIcon, { backgroundColor: Colors.success + '15' }]}>
+                  <Ionicons name="scale-outline" size={18} color={Colors.success} />
                 </View>
                 <View style={styles.detailContent}>
-                  <Text variant="small" color={Colors.textSecondary}>
-                    Weight
-                  </Text>
-                  <Text variant="regular" weight="medium" color={Colors.textPrimary}>
+                  <Text variant="extraSmall" color={colors.textSecondary}>Weight</Text>
+                  <Text variant="medium" weight="medium" color={colors.textPrimary}>
                     {profile.weight} kg
                   </Text>
                 </View>
@@ -465,21 +468,21 @@ export const ProfileScreen: React.FC = () => {
 
             {profile?.height && (
               <View style={styles.detailRow}>
-                <View style={styles.detailIcon}>
-                  <Ionicons name="resize-outline" size={18} color={Colors.primary} />
+                <View style={[styles.detailIcon, { backgroundColor: Colors.info + '15' }]}>
+                  <Ionicons name="resize-outline" size={18} color={Colors.info} />
                 </View>
                 <View style={styles.detailContent}>
-                  <Text variant="small" color={Colors.textSecondary}>
-                    Height
-                  </Text>
-                  <Text variant="regular" weight="medium" color={Colors.textPrimary}>
+                  <Text variant="extraSmall" color={colors.textSecondary}>Height</Text>
+                  <Text variant="medium" weight="medium" color={colors.textPrimary}>
                     {profile.height} cm
                   </Text>
                 </View>
               </View>
             )}
-          </Card>
+          </View>
         </View>
+
+        <View style={{ height: 32 }} />
       </ScrollView>
 
       {/* Edit Profile Modal */}
@@ -683,113 +686,152 @@ export const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   header: {
-    height: 60,
+    height: 56,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingHorizontal: 20,
   },
   scrollView: {
     flex: 1,
   },
-  profileCard: {
-    margin: Spacing.lg,
-    padding: Spacing.xl,
+  scrollContent: {
+    paddingHorizontal: 16,
   },
-  profileHeader: {
-    flexDirection: 'row',
+
+  // ── Profile Hero ──────────────────────────────────────────────────────
+  profileHero: {
     alignItems: 'center',
+    paddingVertical: 28,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    marginBottom: 24,
   },
   avatarContainer: {
     position: 'relative',
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
   },
   avatarPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.primaryLight + '30',
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     justifyContent: 'center',
     alignItems: 'center',
   },
   editBadge: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
+    bottom: 2,
+    right: 2,
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: Colors.surface,
+    borderWidth: 2.5,
   },
-  profileInfo: {
-    flex: 1,
-    marginLeft: Spacing.lg,
-  },
-  editButton: {
-    padding: Spacing.sm,
-  },
-  statsContainer: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.xl,
-  },
-  sectionTitle: {
-    marginBottom: Spacing.md,
-  },
-  statsGrid: {
+  editProfileBtn: {
     flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    padding: Spacing.lg,
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: 6,
+    marginTop: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    borderWidth: 1.5,
   },
-  detailsContainer: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.xl,
+
+  // ── Sections ──────────────────────────────────────────────────────────
+  section: {
+    marginBottom: 24,
   },
+  sectionLabel: {
+    fontSize: 13,
+    fontFamily: 'Poppins_600SemiBold',
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+
+  // ── Stats ─────────────────────────────────────────────────────────────
+  statsCardsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: Spacing.md,
+  },
+  statsLoading: {
+    padding: Spacing.xl,
+    alignItems: 'center',
+  },
+  emptyStats: {
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 16,
+  },
+  emptyStatsIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  recordsContainer: {
+    marginTop: Spacing.lg,
+  },
+
+  // ── Tab bar ───────────────────────────────────────────────────────────
+  tabBar: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  activeTab: {
+    backgroundColor: `${Colors.primary}15`,
+    borderColor: Colors.primary,
+  },
+
+  // ── Details card ──────────────────────────────────────────────────────
   detailsCard: {
-    padding: Spacing.lg,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   detailIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primaryLight + '20',
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: Spacing.md,
+    marginRight: 14,
   },
   detailContent: {
     flex: 1,
   },
+
+  // ── Modals ────────────────────────────────────────────────────────────
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -820,7 +862,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: BorderRadius.medium,
+    borderRadius: 12,
     paddingHorizontal: Spacing.lg,
     marginTop: Spacing.sm,
     fontSize: 14,
@@ -842,52 +884,8 @@ const styles = StyleSheet.create({
   modalButton: {
     flex: 1,
   },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    paddingBottom: Spacing.md,
-    gap: Spacing.md,
-    marginTop: Spacing.lg,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    alignItems: 'center',
-    borderRadius: BorderRadius.large,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  activeTab: {
-    backgroundColor: `${Colors.primary}15`,
-    borderColor: Colors.primary,
-  },
-  statsSection: {
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.xl,
-  },
-  statsCardsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginTop: Spacing.md,
-  },
-  statsLoading: {
-    padding: Spacing.xl,
-    alignItems: 'center',
-  },
-  emptyStats: {
-    padding: Spacing.xxxl,
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  emptyText: {
-    marginTop: Spacing.md,
-  },
-  recordsContainer: {
-    marginTop: Spacing.lg,
-  },
+
+  // ── Image viewer ──────────────────────────────────────────────────────
   imageViewerOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.95)',
