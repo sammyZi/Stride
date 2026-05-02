@@ -77,7 +77,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setSession(null);
           }
         }
-      } catch {
+      } catch (err) {
+        console.warn('Session restore failed (continuing unauthenticated):', err);
         // Graceful degradation — stay unauthenticated
         if (!cancelled) {
           setUser(null);

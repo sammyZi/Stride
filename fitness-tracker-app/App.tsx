@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { ActivityIndicator } from 'react-native';
 import { useFonts, useTheme, usePermissions } from './src/hooks';
 import { Text } from './src/components';
@@ -93,13 +93,15 @@ function AppContent() {
 
 export default function App() {
   return (
-    <SettingsProvider>
-      <AuthProvider>
-        <SyncProvider>
-          <AppContent />
-        </SyncProvider>
-      </AuthProvider>
-    </SettingsProvider>
+    <SafeAreaProvider>
+      <SettingsProvider>
+        <AuthProvider>
+          <SyncProvider>
+            <AppContent />
+          </SyncProvider>
+        </AuthProvider>
+      </SettingsProvider>
+    </SafeAreaProvider>
   );
 }
 

@@ -55,6 +55,8 @@ class StorageService {
   private _storageMode: StorageMode = 'local-only';
   private _userId: string | null = null;
   private _syncCallback: SyncCallback | null = null;
+  /** When true, notifySync() is suppressed (used during bulk import/download). */
+  private _syncSuppressed = false;
 
   // ==================== App Initialization ====================
 
@@ -142,6 +144,7 @@ class StorageService {
     operation: 'create' | 'update' | 'delete',
     data: any,
   ): void {
+    if (this._syncSuppressed) return;
     if (this._storageMode === 'cloud-sync' && this._syncCallback) {
       try {
         this._syncCallback(entityType, operation, data);
@@ -151,6 +154,21 @@ class StorageService {
     }
   }
 
+  /**
+   * Temporarily suppress sync notifications (e.g. during bulk import or
+   * when downloading cloud data to avoid re-uploading the same items).
+   */
+  suppressSync(): void {
+    this._syncSuppressed = true;
+  }
+
+  /**
+   * Re-enable sync notifications after a suppressSync() call.
+   */
+  resumeSync(): void {
+    this._syncSuppressed = false;
+  }
+
   // ==================== Activities ====================
 
   /**
@@ -158,18 +176,19 @@ class StorageService {
    */
   async saveActivity(activity: Activity): Promise<void> {
     try {
-      // Determine if this is a new or existing activity
-      const existingActivities = await this.getActivities();
-      const isUpdate = existingActivities.some(a => a.id === activity.id);
+      // Single read of the activity list
+      const activitiesJson = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVITIES);
+      const existingActivities: Activity[] = activitiesJson ? JSON.parse(activitiesJson) : [];
+
+      const existingIndex = existingActivities.findIndex(a => a.id === activity.id);
+      const isUpdate = existingIndex >= 0;
 
       // Save individual activity
       const activityKey = `${STORAGE_KEYS.ACTIVITY_PREFIX}${activity.id}`;
       await AsyncStorage.setItem(activityKey, JSON.stringify(activity));
 
       // Update activities list
-      const existingIndex = existingActivities.findIndex(a => a.id === activity.id);
-      
-      if (existingIndex >= 0) {
+      if (isUpdate) {
         existingActivities[existingIndex] = activity;
       } else {
         existingActivities.push(activity);
@@ -388,6 +407,9 @@ class StorageService {
 
       goals[goalIndex] = { ...goals[goalIndex], ...updates };
       await AsyncStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(goals));
+
+      // Notify sync service if in cloud-sync mode
+      this.notifySync('goal', 'update', goals[goalIndex]);
     } catch (error) {
       console.error('Error updating goal:', error);
       throw new Error('Failed to update goal');
@@ -561,28 +583,36 @@ class StorageService {
         throw new Error('Invalid data format');
       }
 
-      // Import profile
-      if (data.profile) {
-        await this.saveUserProfile(data.profile);
-      }
+      // Suppress sync during bulk import to avoid N individual callbacks.
+      // A full sync should be triggered after import completes.
+      this.suppressSync();
 
-      // Import settings
-      if (data.settings) {
-        await this.saveSettings(data.settings);
-      }
-
-      // Import activities
-      if (data.activities && Array.isArray(data.activities)) {
-        for (const activity of data.activities) {
-          await this.saveActivity(activity);
+      try {
+        // Import profile
+        if (data.profile) {
+          await this.saveUserProfile(data.profile);
         }
-      }
 
-      // Import goals
-      if (data.goals && Array.isArray(data.goals)) {
-        for (const goal of data.goals) {
-          await this.saveGoal(goal);
+        // Import settings
+        if (data.settings) {
+          await this.saveSettings(data.settings);
         }
+
+        // Import activities
+        if (data.activities && Array.isArray(data.activities)) {
+          for (const activity of data.activities) {
+            await this.saveActivity(activity);
+          }
+        }
+
+        // Import goals
+        if (data.goals && Array.isArray(data.goals)) {
+          for (const goal of data.goals) {
+            await this.saveGoal(goal);
+          }
+        }
+      } finally {
+        this.resumeSync();
       }
     } catch (error) {
       console.error('Error importing data:', error);
@@ -617,19 +647,21 @@ class StorageService {
     try {
       const keys = await AsyncStorage.getAllKeys();
       const appKeys = keys.filter(key => key.startsWith('@'));
-      
-      // Estimate size by getting all values
+
+      // Batch read all values in one call for performance
       let estimatedSize = 0;
-      for (const key of appKeys) {
-        const value = await AsyncStorage.getItem(key);
-        if (value) {
-          estimatedSize += value.length;
+      if (appKeys.length > 0) {
+        const entries = await AsyncStorage.multiGet(appKeys);
+        for (const [, value] of entries) {
+          if (value) {
+            estimatedSize += value.length;
+          }
         }
       }
 
       return {
         keys: appKeys.length,
-        estimatedSize, // in bytes
+        estimatedSize, // in bytes (string length ≈ bytes for ASCII)
       };
     } catch (error) {
       console.error('Error getting storage info:', error);

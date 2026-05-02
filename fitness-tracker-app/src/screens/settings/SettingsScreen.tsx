@@ -11,18 +11,16 @@
 import React from 'react';
 import {
   View,
-  Text as RNText,
   StyleSheet,
   ScrollView,
   Switch,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../../components/common';
 import { SyncStatusIndicator } from '../../components/sync';
-import { Colors, Spacing } from '../../constants/theme';
+import { Colors, Spacing, BorderRadius } from '../../constants/theme';
 import { useSettings } from '../../context';
 import { useTheme } from '../../hooks';
 import { UnitSystem } from '../../types';
@@ -33,6 +31,104 @@ const ANNOUNCEMENT_INTERVALS = [
   { label: '1 mile', value: 1609, imperial: 1 },
   { label: '2 km', value: 2000, imperial: 1.24 },
 ];
+
+// ── Reusable sub-components ──────────────────────────────────────────────────
+
+interface SectionProps {
+  title: string;
+  children: React.ReactNode;
+  colors: any;
+  isFirst?: boolean;
+}
+
+const Section: React.FC<SectionProps> = ({ title, children, colors, isFirst }) => (
+  <View style={[styles.section, isFirst && { marginTop: 0 }]}>
+    <Text style={[styles.sectionTitle, { color: colors.primary }]}>{title}</Text>
+    <View style={[styles.sectionCard, { backgroundColor: colors.surface }]}>
+      {children}
+    </View>
+  </View>
+);
+
+interface SettingRowProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconBg: string;
+  label: string;
+  description: string;
+  colors: any;
+  right?: React.ReactNode;
+  onPress?: () => void;
+  isLast?: boolean;
+}
+
+const SettingRow: React.FC<SettingRowProps> = ({
+  icon, iconBg, label, description, colors, right, onPress, isLast,
+}) => {
+  const content = (
+    <View style={[styles.settingRow, !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}>
+      <View style={[styles.iconCircle, { backgroundColor: iconBg + '18' }]}>  
+        <Ionicons name={icon} size={20} color={iconBg} />
+      </View>
+      <View style={styles.settingTextContainer}>
+        <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>{label}</Text>
+        <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
+          {description}
+        </Text>
+      </View>
+      {right}
+    </View>
+  );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity activeOpacity={0.6} onPress={onPress}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+  return content;
+};
+
+// ── Pill selector ────────────────────────────────────────────────────────────
+
+interface PillOption { label: string; value: string | number }
+
+interface PillSelectorProps {
+  options: PillOption[];
+  selected: string | number;
+  onSelect: (value: any) => void;
+  colors: any;
+}
+
+const PillSelector: React.FC<PillSelectorProps> = ({ options, selected, onSelect, colors }) => (
+  <View style={styles.pillRow}>
+    {options.map((opt) => {
+      const active = opt.value === selected;
+      return (
+        <TouchableOpacity
+          key={String(opt.value)}
+          style={[
+            styles.pill,
+            { borderColor: colors.border, backgroundColor: active ? colors.primary : colors.surface },
+          ]}
+          onPress={() => onSelect(opt.value)}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[
+              styles.pillText,
+              { color: active ? '#fff' : colors.textPrimary },
+            ]}
+          >
+            {opt.label}
+          </Text>
+        </TouchableOpacity>
+      );
+    })}
+  </View>
+);
+
+// ── Main screen ──────────────────────────────────────────────────────────────
 
 export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const {
@@ -58,446 +154,341 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
     return intervalOption.label;
   };
 
+  const switchTrackColor = { false: colors.border, true: colors.primary };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <View style={[styles.header, { backgroundColor: colors.background }]}>
         <Text variant="large" weight="bold" color={colors.textPrimary}>Settings</Text>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Sync Status Indicator (16.1) */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Sync Status */}
         <SyncStatusIndicator />
 
-        {/* Account Section */}
-        <View style={[styles.section, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Account</Text>
-
-          <TouchableOpacity
-            style={styles.settingRow}
+        {/* ── Account ──────────────────────────────────────────────────── */}
+        <Section title="Account" colors={colors} isFirst>
+          <SettingRow
+            icon="person-circle-outline"
+            iconBg={colors.primary}
+            label="Account & Cloud Sync"
+            description="Manage your account and data sync"
+            colors={colors}
+            right={<Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />}
             onPress={() => navigation.navigate('AccountSettings')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.settingInfo}>
-              <Ionicons name="person-circle-outline" size={24} color={Colors.primary} />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Account & Cloud Sync</Text>
-                <Text style={styles.settingDescription}>
-                  Manage your account and data sync
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={Colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
+            isLast
+          />
+        </Section>
 
-        {/* Background Tracking Guide */}
-        <View style={[styles.section, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Help & Support</Text>
-          
-          <TouchableOpacity
-            style={styles.settingRow}
-            onPress={() => navigation.navigate('BackgroundTrackingGuide')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.settingInfo}>
-              <Ionicons name="help-circle-outline" size={24} color={Colors.primary} />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Background Tracking Guide</Text>
-                <Text style={styles.settingDescription}>
-                  Prevent app from closing during workouts
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={Colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Units Section */}
-        <View style={[styles.section, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Units</Text>
-
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="speedometer-outline" size={24} color={Colors.primary} />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Unit System</Text>
-                <Text style={styles.settingDescription}>
-                  {settings.units === 'metric' ? 'Kilometers' : 'Miles'}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.segmentedControl}>
-              <TouchableOpacity
-                style={[
-                  styles.segmentButton,
-                  settings.units === 'metric' && styles.segmentButtonActive,
-                ]}
-                onPress={() => setUnits('metric')}
-              >
-                <Text
-                  style={[
-                    styles.segmentButtonText,
-                    settings.units === 'metric' && styles.segmentButtonTextActive,
-                  ]}
-                >
-                  Metric
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.segmentButton,
-                  settings.units === 'imperial' && styles.segmentButtonActive,
-                ]}
-                onPress={() => setUnits('imperial')}
-              >
-                <Text
-                  style={[
-                    styles.segmentButtonText,
-                    settings.units === 'imperial' && styles.segmentButtonTextActive,
-                  ]}
-                >
-                  Imperial
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Audio Announcements Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Audio Announcements</Text>
-
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="volume-high-outline" size={24} color={Colors.primary} />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Enable Announcements</Text>
-                <Text style={styles.settingDescription}>
-                  Hear distance and pace updates
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={settings.audioAnnouncements}
-              onValueChange={toggleAudioAnnouncements}
-              trackColor={{ false: Colors.border, true: Colors.primary }}
-              thumbColor="#fff"
-            />
-          </View>
-
-          {settings.audioAnnouncements && (
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Ionicons name="timer-outline" size={24} color={Colors.primary} />
-                <View style={styles.settingTextContainer}>
-                  <Text style={styles.settingLabel}>Announcement Interval</Text>
-                  <Text style={styles.settingDescription}>
-                    Current: {getIntervalLabel(settings.announcementInterval, settings.units)}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {settings.audioAnnouncements && (
-            <View style={styles.intervalOptions}>
-              {ANNOUNCEMENT_INTERVALS.map((interval) => (
-                <TouchableOpacity
-                  key={interval.value}
-                  style={[
-                    styles.intervalButton,
-                    settings.announcementInterval === interval.value &&
-                    styles.intervalButtonActive,
-                  ]}
-                  onPress={() => setAnnouncementInterval(interval.value)}
-                >
-                  <Text
-                    style={[
-                      styles.intervalButtonText,
-                      settings.announcementInterval === interval.value &&
-                      styles.intervalButtonTextActive,
-                    ]}
-                  >
-                    {settings.units === 'imperial'
-                      ? `${interval.imperial} mi`
-                      : interval.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Auto-Pause Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Activity Tracking</Text>
-
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="pause-circle-outline" size={24} color={Colors.primary} />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Auto-Pause</Text>
-                <Text style={styles.settingDescription}>
-                  Automatically pause when stationary
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={settings.autoPause}
-              onValueChange={(value) => updateSettings({ autoPause: value })}
-              trackColor={{ false: Colors.border, true: Colors.primary }}
-              thumbColor="#fff"
-            />
-          </View>
-
-          {settings.autoPause && (
-            <>
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <Ionicons name="options-outline" size={24} color={Colors.primary} />
-                  <View style={styles.settingTextContainer}>
-                    <Text style={styles.settingLabel}>Auto-Pause Sensitivity</Text>
-                    <Text style={styles.settingDescription}>
-                      Current: {settings.autoPauseSensitivity.charAt(0).toUpperCase() + settings.autoPauseSensitivity.slice(1)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.intervalOptions}>
-                {(['low', 'medium', 'high'] as const).map((sensitivity) => (
+        {/* ── Units ────────────────────────────────────────────────────── */}
+        <Section title="Units" colors={colors}>
+          <SettingRow
+            icon="speedometer-outline"
+            iconBg="#4ECDC4"
+            label="Unit System"
+            description={settings.units === 'metric' ? 'Kilometers' : 'Miles'}
+            colors={colors}
+            right={
+              <View style={[styles.segmentedControl, { backgroundColor: colors.background }]}>
+                {(['metric', 'imperial'] as const).map((u) => (
                   <TouchableOpacity
-                    key={sensitivity}
+                    key={u}
                     style={[
-                      styles.intervalButton,
-                      settings.autoPauseSensitivity === sensitivity &&
-                      styles.intervalButtonActive,
+                      styles.segmentButton,
+                      settings.units === u && { backgroundColor: colors.primary },
                     ]}
-                    onPress={() => updateSettings({ autoPauseSensitivity: sensitivity })}
+                    onPress={() => setUnits(u)}
                   >
                     <Text
                       style={[
-                        styles.intervalButtonText,
-                        settings.autoPauseSensitivity === sensitivity &&
-                        styles.intervalButtonTextActive,
+                        styles.segmentText,
+                        { color: settings.units === u ? '#fff' : colors.textSecondary },
                       ]}
                     >
-                      {sensitivity.charAt(0).toUpperCase() + sensitivity.slice(1)}
+                      {u === 'metric' ? 'km' : 'mi'}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
+            }
+            isLast
+          />
+        </Section>
+
+        {/* ── Audio Announcements ──────────────────────────────────────── */}
+        <Section title="Audio Announcements" colors={colors}>
+          <SettingRow
+            icon="volume-high-outline"
+            iconBg="#FF9F43"
+            label="Enable Announcements"
+            description="Hear distance and pace updates"
+            colors={colors}
+            right={
+              <Switch
+                value={settings.audioAnnouncements}
+                onValueChange={toggleAudioAnnouncements}
+                trackColor={switchTrackColor}
+                thumbColor="#fff"
+              />
+            }
+            isLast={!settings.audioAnnouncements}
+          />
+
+          {settings.audioAnnouncements && (
+            <>
+              <SettingRow
+                icon="timer-outline"
+                iconBg="#FF9F43"
+                label="Interval"
+                description={`Every ${getIntervalLabel(settings.announcementInterval, settings.units)}`}
+                colors={colors}
+                isLast
+              />
+              <PillSelector
+                options={ANNOUNCEMENT_INTERVALS.map((i) => ({
+                  label: settings.units === 'imperial' ? `${i.imperial} mi` : i.label,
+                  value: i.value,
+                }))}
+                selected={settings.announcementInterval}
+                onSelect={setAnnouncementInterval}
+                colors={colors}
+              />
             </>
           )}
-        </View>
+        </Section>
 
-        {/* Map Display Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Map Display</Text>
+        {/* ── Activity Tracking ────────────────────────────────────────── */}
+        <Section title="Activity Tracking" colors={colors}>
+          <SettingRow
+            icon="pause-circle-outline"
+            iconBg="#00D9A3"
+            label="Auto-Pause"
+            description="Automatically pause when stationary"
+            colors={colors}
+            right={
+              <Switch
+                value={settings.autoPause}
+                onValueChange={(v) => updateSettings({ autoPause: v })}
+                trackColor={switchTrackColor}
+                thumbColor="#fff"
+              />
+            }
+            isLast={!settings.autoPause}
+          />
 
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="map-outline" size={24} color={Colors.primary} />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Map Type</Text>
-                <Text style={styles.settingDescription}>
-                  Current: {settings.mapType.charAt(0).toUpperCase() + settings.mapType.slice(1)}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.intervalOptions}>
-            {(['standard', 'satellite', 'hybrid'] as const).map((mapType) => (
-              <TouchableOpacity
-                key={mapType}
-                style={[
-                  styles.intervalButton,
-                  settings.mapType === mapType && styles.intervalButtonActive,
+          {settings.autoPause && (
+            <>
+              <SettingRow
+                icon="options-outline"
+                iconBg="#00D9A3"
+                label="Sensitivity"
+                description={settings.autoPauseSensitivity.charAt(0).toUpperCase() + settings.autoPauseSensitivity.slice(1)}
+                colors={colors}
+                isLast
+              />
+              <PillSelector
+                options={[
+                  { label: 'Low', value: 'low' },
+                  { label: 'Medium', value: 'medium' },
+                  { label: 'High', value: 'high' },
                 ]}
-                onPress={() => setMapType(mapType)}
-              >
-                <Text
-                  style={[
-                    styles.intervalButtonText,
-                    settings.mapType === mapType && styles.intervalButtonTextActive,
-                  ]}
-                >
-                  {mapType.charAt(0).toUpperCase() + mapType.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+                selected={settings.autoPauseSensitivity}
+                onSelect={(v: string) => updateSettings({ autoPauseSensitivity: v as any })}
+                colors={colors}
+              />
+            </>
+          )}
+        </Section>
 
-        {/* Haptic Feedback Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Haptic Feedback</Text>
+        {/* ── Map Display ──────────────────────────────────────────────── */}
+        <Section title="Map Display" colors={colors}>
+          <SettingRow
+            icon="map-outline"
+            iconBg="#6C63FF"
+            label="Map Type"
+            description={settings.mapType.charAt(0).toUpperCase() + settings.mapType.slice(1)}
+            colors={colors}
+            isLast
+          />
+          <PillSelector
+            options={[
+              { label: 'Standard', value: 'standard' },
+              { label: 'Satellite', value: 'satellite' },
+              { label: 'Hybrid', value: 'hybrid' },
+            ]}
+            selected={settings.mapType}
+            onSelect={setMapType}
+            colors={colors}
+          />
+        </Section>
 
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="phone-portrait-outline" size={24} color={Colors.primary} />
-              <View style={styles.settingTextContainer}>
-                <Text style={styles.settingLabel}>Vibration Feedback</Text>
-                <Text style={styles.settingDescription}>
-                  Feel haptic feedback for actions
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={isHapticEnabled}
-              onValueChange={toggleHapticFeedback}
-              trackColor={{ false: Colors.border, true: Colors.primary }}
-              thumbColor="#fff"
-            />
-          </View>
-        </View>
+        {/* ── Haptic Feedback ──────────────────────────────────────────── */}
+        <Section title="Haptic Feedback" colors={colors}>
+          <SettingRow
+            icon="phone-portrait-outline"
+            iconBg="#EE5A24"
+            label="Vibration Feedback"
+            description="Feel haptic feedback for actions"
+            colors={colors}
+            right={
+              <Switch
+                value={isHapticEnabled}
+                onValueChange={toggleHapticFeedback}
+                trackColor={switchTrackColor}
+                thumbColor="#fff"
+              />
+            }
+            isLast
+          />
+        </Section>
 
-        {/* Info Section */}
-        <View style={styles.infoSection}>
-          <Ionicons name="information-circle-outline" size={20} color={Colors.textSecondary} />
-          <Text style={styles.infoText}>
-            Audio announcements will play during your activities to keep you informed
-            without looking at your phone. Haptic feedback provides tactile confirmation
-            for your actions.
+        {/* ── Help & Support ───────────────────────────────────────────── */}
+        <Section title="Help & Support" colors={colors}>
+          <SettingRow
+            icon="help-circle-outline"
+            iconBg="#4ECDC4"
+            label="Background Tracking Guide"
+            description="Prevent app from closing during workouts"
+            colors={colors}
+            right={<Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />}
+            onPress={() => navigation.navigate('BackgroundTrackingGuide')}
+            isLast
+          />
+        </Section>
+
+        {/* ── Info footer ──────────────────────────────────────────────── */}
+        <View style={styles.infoFooter}>
+          <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
+          <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+            Audio announcements play during activities so you can stay informed without checking
+            your phone. Haptic feedback provides tactile confirmation for actions.
           </Text>
         </View>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
 };
 
+// ── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    fontFamily: 'Poppins_400Regular',
-    color: Colors.textSecondary,
   },
   header: {
-    height: 60,
+    height: 56,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingHorizontal: 20,
   },
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingHorizontal: 16,
+  },
+
+  // ── Sections ───────────────────────────────────────────────────────────
   section: {
-    backgroundColor: '#fff',
-    marginTop: 16,
-    paddingVertical: 12,
+    marginTop: 24,
   },
   sectionTitle: {
     fontSize: 13,
     fontFamily: 'Poppins_600SemiBold',
-    color: Colors.textSecondary,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    paddingHorizontal: 20,
+    letterSpacing: 1,
     marginBottom: 8,
+    marginLeft: 4,
   },
+  sectionCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+
+  // ── Setting rows ───────────────────────────────────────────────────────
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
-  settingInfo: {
-    flexDirection: 'row',
+  iconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     alignItems: 'center',
-    flex: 1,
+    justifyContent: 'center',
+    marginRight: 14,
   },
   settingTextContainer: {
-    marginLeft: 12,
     flex: 1,
+    marginRight: 8,
   },
   settingLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: 'Poppins_500Medium',
-    color: Colors.textPrimary,
   },
   settingDescription: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: 'Poppins_400Regular',
-    color: Colors.textSecondary,
-    marginTop: 2,
+    marginTop: 1,
   },
+
+  // ── Segmented control (km / mi) ────────────────────────────────────────
   segmentedControl: {
     flexDirection: 'row',
-    backgroundColor: Colors.background,
-    borderRadius: 8,
-    padding: 2,
+    borderRadius: 10,
+    padding: 3,
   },
   segmentButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
-  segmentButtonActive: {
-    backgroundColor: Colors.primary,
+  segmentText: {
+    fontSize: 13,
+    fontFamily: 'Poppins_600SemiBold',
   },
-  segmentButtonText: {
-    fontSize: 14,
-    fontFamily: 'Poppins_500Medium',
-    color: Colors.textSecondary,
-  },
-  segmentButtonTextActive: {
-    color: '#fff',
-  },
-  intervalOptions: {
+
+  // ── Pill selector ──────────────────────────────────────────────────────
+  pillRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 14,
     gap: 8,
   },
-  intervalButton: {
+  pill: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: Colors.background,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
-  intervalButtonActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  intervalButtonText: {
-    fontSize: 14,
+  pillText: {
+    fontSize: 13,
     fontFamily: 'Poppins_500Medium',
-    color: Colors.textPrimary,
   },
-  intervalButtonTextActive: {
-    color: '#fff',
-  },
-  infoSection: {
+
+  // ── Info footer ────────────────────────────────────────────────────────
+  infoFooter: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginTop: 16,
+    paddingHorizontal: 4,
+    paddingTop: 20,
     gap: 8,
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: 'Poppins_400Regular',
-    color: Colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: 18,
   },
 });

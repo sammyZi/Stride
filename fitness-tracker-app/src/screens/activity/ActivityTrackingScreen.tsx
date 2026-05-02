@@ -89,6 +89,20 @@ export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ 
   }, [settings.audioAnnouncements, settings.announcementInterval, settings.units]);
 
   useEffect(() => {
+    // Register ConfirmModal handler for battery prompts (replaces Alert.alert)
+    BatteryOptimizationService.setAlertHandler((title, message, buttons) => {
+      showConfirm(
+        title,
+        message,
+        buttons.map((b) => ({
+          text: b.text,
+          onPress: () => { b.onPress?.(); hideModal(); },
+          style: (b.style as 'default' | 'cancel' | 'destructive') || 'default',
+        })),
+        { icon: 'battery-half-outline', iconColor: Colors.warning },
+      );
+    });
+
     initializeServices();
 
     // Handle Android back button
@@ -158,6 +172,8 @@ export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ 
 
     return () => {
       backHandler.remove();
+      // Clean up battery alert handler
+      BatteryOptimizationService.setAlertHandler(null);
       // Clean up init location subscription
       if (initLocationUnsubRef.current) {
         initLocationUnsubRef.current();

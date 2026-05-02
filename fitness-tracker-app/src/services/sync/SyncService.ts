@@ -513,11 +513,18 @@ class SyncService {
   async downloadAllData(): Promise<void> {
     if (!this._userId) return;
 
-    await Promise.all([
-      this.downloadActivities(),
-      this.downloadProfile(),
-      this.downloadGoals(),
-    ]);
+    // Suppress sync notifications during download to avoid re-uploading
+    // the same items back to Supabase.
+    StorageService.suppressSync();
+    try {
+      await Promise.all([
+        this.downloadActivities(),
+        this.downloadProfile(),
+        this.downloadGoals(),
+      ]);
+    } finally {
+      StorageService.resumeSync();
+    }
   }
 
   /** Download and merge activities with conflict resolution. */

@@ -106,6 +106,12 @@ export function mapSyncError(errorOrMessage: any, operation: 'upload' | 'downloa
       message: 'Unable to access cloud storage. Please log in again',
     };
   }
+  if (lower.includes('rate limit') || lower.includes('too many requests') || lower.includes('429')) {
+    return {
+      code: 'SYNC_TIMEOUT',
+      message: 'Too many requests. Sync will retry shortly',
+    };
+  }
   if (lower.includes('quota') || lower.includes('storage full')) {
     return {
       code: 'SYNC_STORAGE_FULL',

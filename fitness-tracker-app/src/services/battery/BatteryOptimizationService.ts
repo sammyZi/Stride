@@ -16,6 +16,21 @@ import * as IntentLauncher from 'expo-intent-launcher';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BATTERY_CONFIG, STORAGE_CONFIG } from '@/config/tracking';
 
+/**
+ * Callback signature for showing battery alert dialogs.
+ * The service defers all user-facing prompts to this handler so the UI layer
+ * can use ConfirmModal instead of the native Alert.
+ *
+ * @param title   - Dialog title
+ * @param message - Dialog body
+ * @param buttons - Array of { text, onPress, style } objects
+ */
+export type BatteryAlertHandler = (
+  title: string,
+  message: string,
+  buttons: Array<{ text: string; onPress?: () => void; style?: string }>,
+) => void;
+
 export interface BatteryOptimizationStatus {
   isOptimized: boolean;
   canRequestExemption: boolean;
@@ -25,6 +40,29 @@ export interface BatteryOptimizationStatus {
 class BatteryOptimizationService {
   private lastCheckTime: number = 0;
   private cachedStatus: boolean | null = null;
+  /** Optional UI-layer handler; falls back to native Alert if unset. */
+  private alertHandler: BatteryAlertHandler | null = null;
+
+  /**
+   * Register a custom alert handler (call from a React component with
+   * access to ConfirmModal). Pass `null` to revert to native Alert.
+   */
+  setAlertHandler(handler: BatteryAlertHandler | null): void {
+    this.alertHandler = handler;
+  }
+
+  /** Show a dialog through the registered handler or native Alert. */
+  private showAlert(
+    title: string,
+    message: string,
+    buttons: Array<{ text: string; onPress?: () => void; style?: string }>,
+  ): void {
+    if (this.alertHandler) {
+      this.alertHandler(title, message, buttons);
+    } else {
+      Alert.alert(title, message, buttons as any);
+    }
+  }
 
   /**
    * Check if the app is currently battery optimized (restricted)
@@ -126,7 +164,7 @@ class BatteryOptimizationService {
     await this.saveExemptionRequestTime();
 
     return new Promise((resolve) => {
-      Alert.alert(
+      this.showAlert(
         'Battery Optimization Required',
         message,
         [
@@ -143,7 +181,6 @@ class BatteryOptimizationService {
             },
           },
         ],
-        { cancelable: false }
       );
     });
   }
@@ -294,7 +331,7 @@ class BatteryOptimizationService {
    * Show informational dialog about battery optimization
    */
   showBatteryOptimizationInfo(): void {
-    Alert.alert(
+    this.showAlert(
       'About Battery Optimization',
       'For accurate activity tracking, we recommend disabling battery optimization for this app.\n\n' +
       'Battery optimization can:\n' +

@@ -169,6 +169,38 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => unsub();
   }, [isCloudSyncEnabled, addNotification]);
 
+  // ── Auto-enable & initialize cloud sync on login ────────────────────────
+  //
+  // When a user is authenticated:
+  //   • If cloud-sync is already enabled → just re-initialize SyncService.
+  //   • If cloud-sync is NOT yet enabled → enable it automatically so the
+  //     user doesn't have to toggle it manually after every login.
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    const initSync = async () => {
+      try {
+        if (!isCloudSyncEnabled) {
+          // Auto-enable cloud sync for logged-in users
+          await StorageService.enableCloudSync(user.id);
+          console.log('[Sync] Cloud sync auto-enabled for user', user.id);
+        }
+        await SyncService.initialize(user.id);
+        console.log('[Sync] SyncService initialized');
+      } catch (err) {
+        console.error('[Sync] Auto-init failed:', err);
+      }
+    };
+
+    initSync();
+
+    return () => {
+      // Shut down when user logs out
+      SyncService.shutdown().catch(() => {});
+    };
+  }, [isAuthenticated, user]);
+
   // ── Restore last sync time ────────────────────────────────────────────
 
   useEffect(() => {
@@ -211,9 +243,11 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const result = await SyncService.syncAllActivities();
       const goalsResult = await SyncService.syncGoals();
-      const profileResult = await SyncService.syncUserProfile(
-        (await StorageService.getUserProfile())!
-      );
+
+      const profile = await StorageService.getUserProfile();
+      const profileResult = profile
+        ? await SyncService.syncUserProfile(profile)
+        : { syncedCount: 0, failedCount: 0, success: true, errors: [] as any[] };
 
       const totalFailed =
         result.failedCount + goalsResult.failedCount + profileResult.failedCount;
@@ -229,6 +263,18 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           duration: 3000,
         });
       } else {
+        console.error(`[Sync] ${totalFailed} item(s) failed to sync.`, {
+          activities: result.failedCount,
+          goals: goalsResult.failedCount,
+          profile: profileResult.failedCount,
+        });
+        // Log individual error details for debugging
+        const allErrors = [
+          ...result.errors.map(e => `Activity(${e.itemId}): [${e.code}] ${e.error}`),
+          ...goalsResult.errors.map(e => `Goal(${e.itemId}): [${e.code}] ${e.error}`),
+          ...profileResult.errors.map(e => `Profile: [${e.code}] ${e.error}`),
+        ];
+        allErrors.forEach(msg => console.error(`[Sync]   └─ ${msg}`));
         addNotification({
           type: 'error',
           title: 'Sync Issues',
@@ -239,7 +285,8 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       await refreshQueueCount();
-    } catch {
+    } catch (err) {
+      console.error('[Sync] triggerSync failed:', err);
       addNotification({
         type: 'error',
         title: 'Sync Failed',
@@ -277,6 +324,7 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           duration: 3000,
         });
       } else {
+        console.warn(`[Sync] Retry partial: ${remaining.length} operation(s) still pending.`);
         addNotification({
           type: 'error',
           title: 'Partial Retry',
@@ -285,7 +333,8 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           duration: 5000,
         });
       }
-    } catch {
+    } catch (err) {
+      console.error('[Sync] retryFailed failed:', err);
       addNotification({
         type: 'error',
         title: 'Retry Failed',
