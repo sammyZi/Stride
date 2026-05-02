@@ -26,6 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Text, Button } from '../../components/common';
+import { SyncStatusIndicator } from '../../components/sync';
 import { Colors, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { useAuth } from '../../context';
 import { useTheme } from '../../hooks';
@@ -265,6 +266,9 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Sync Status Indicator (16.1) */}
+        <SyncStatusIndicator />
+
         {/* Account Info Card */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <View style={[styles.avatarContainer, { backgroundColor: colors.primary + '15' }]}>

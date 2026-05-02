@@ -21,6 +21,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../../components/common';
+import { SyncStatusIndicator } from '../../components/sync';
 import { Colors, Spacing } from '../../constants/theme';
 import { useSettings } from '../../context';
 import { useTheme } from '../../hooks';
@@ -64,6 +65,9 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Sync Status Indicator (16.1) */}
+        <SyncStatusIndicator />
+
         {/* Account Section */}
         <View style={[styles.section, { backgroundColor: colors.surface }]}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Account</Text>

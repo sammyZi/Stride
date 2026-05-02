@@ -6,7 +6,8 @@ import { ActivityIndicator } from 'react-native';
 import { useFonts, useTheme, usePermissions } from './src/hooks';
 import { Text } from './src/components';
 import { AppNavigator } from './src/navigation';
-import { SettingsProvider, AuthProvider } from './src/context';
+import { SettingsProvider, AuthProvider, SyncProvider } from './src/context';
+import { SyncToastOverlay } from './src/components';
 import { PermissionsScreen } from './src/screens/onboarding/PermissionsScreen';
 import storageService from './src/services/storage/StorageService';
 import { configurePerformance } from './src/utils/performance';
@@ -85,6 +86,7 @@ function AppContent() {
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <AppNavigator />
+      <SyncToastOverlay />
     </>
   );
 }
@@ -93,7 +95,9 @@ export default function App() {
   return (
     <SettingsProvider>
       <AuthProvider>
-        <AppContent />
+        <SyncProvider>
+          <AppContent />
+        </SyncProvider>
       </AuthProvider>
     </SettingsProvider>
   );
