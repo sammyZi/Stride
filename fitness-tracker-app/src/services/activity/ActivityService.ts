@@ -50,6 +50,25 @@ class ActivityService {
   private metricsUpdateInterval: ReturnType<typeof setInterval> | null = null;
   private lastMetricsUpdate: number = 0;
   private readonly METRICS_UPDATE_INTERVAL = 1000; // Update metrics every second
+
+  // ── Pace smoothing state (industry-standard EMA) ──────────────────────
+  //
+  // Instead of returning raw instantaneous pace (which flickers wildly on
+  // GPS jitter) or zero (when the user briefly stops), we use an
+  // Exponential Moving Average (EMA) and a "last-known hold":
+  //
+  //   • _emaPace           — Smoothed current pace (seconds/km).
+  //   • _lastPaceTimestamp  — Timestamp of the last valid pace sample.
+  //   • PACE_STALE_MS       — After this many ms without a new sample the
+  //                          display fades to "--:--" (user truly stopped).
+  //   • EMA_ALPHA           — Smoothing factor (0..1). Lower = smoother.
+  //                          0.3 gives ~3-sample half-life — responsive
+  //                          yet stable, matching Strava / Nike Run Club.
+  //
+  private _emaPace: number = 0;
+  private _lastPaceTimestamp: number = 0;
+  private readonly PACE_STALE_MS = 10_000;  // 10 s before pace decays
+  private readonly EMA_ALPHA = 0.3;
   private cachedCalories: number = 0; // Cached calorie value for current activity
 
   /**
@@ -83,6 +102,8 @@ class ActivityService {
         status: 'active',
       };
       this.cachedCalories = 0; // Reset cached calories for new activity
+      this._emaPace = 0;       // Reset pace smoothing for new activity
+      this._lastPaceTimestamp = 0;
       console.log('Activity object created, status:', this.currentActivity.status);
 
       // Start location tracking
@@ -627,9 +648,12 @@ class ActivityService {
     const distanceKm = distance / 1000;
     const pace = duration / distanceKm; // seconds per km
 
-    // Bounds check: return 0 for unrealistic paces
-    // 90 sec/km (~1:30/km) to 3600 sec/km (~60:00/km)
-    if (pace < 90 || pace > 3600 || !isFinite(pace)) {
+    // Bounds check: return 0 for truly unrealistic paces.
+    // Lower bound: 90 s/km (~1:30/km, world-class sprinting).
+    // Upper bound: 5400 s/km (~90:00/km) — accommodates very slow
+    // walkers and rehab users. Apps like Strava cap around 30:00/km
+    // for running but allow slower for walking.
+    if (pace < 90 || pace > 5400 || !isFinite(pace)) {
       return 0;
     }
 
@@ -637,27 +661,45 @@ class ActivityService {
   }
 
   /**
-   * Calculate current pace based on recent route points
-   * Uses last 30 seconds of data for current pace
-   * @returns Pace in seconds per kilometer
+   * Calculate current pace using an Exponential Moving Average (EMA).
+   *
+   * Industry-standard approach used by Strava, Nike Run Club, and Garmin:
+   *
+   *   1. Compute a raw instantaneous pace from the most recent route
+   *      segment(s) in a sliding window (last 15 s of GPS data).
+   *   2. Feed the raw value through an EMA so the displayed number
+   *      transitions smoothly instead of flickering on every GPS update.
+   *   3. When the user stops (no valid segment in the window), **hold**
+   *      the last known EMA pace for up to PACE_STALE_MS (10 s).
+   *      After that, return 0 so the UI shows "--:--".
+   *
+   * This prevents the annoying behaviour where pace instantly resets to
+   * zero at traffic lights, shoe-tying, etc.
+   *
+   * @returns Pace in seconds per kilometer (EMA-smoothed)
    */
   private calculateCurrentPace(): number {
     if (!this.currentActivity || this.currentActivity.route.length < 2) {
-      return 0;
+      return this.getHeldPace();
+    }
+
+    // If the activity is paused, hold the last known pace
+    if (this.currentActivity.status === 'paused') {
+      return this.getHeldPace();
     }
 
     const now = Date.now();
-    const timeWindow = 30000; // 30 seconds
+    const timeWindow = 15_000; // 15 s — shorter window = more responsive
     const route = this.currentActivity.route;
 
-    // Find points within the time window
-    const recentPoints = route.filter(point => now - point.timestamp <= timeWindow);
+    // Collect points within the window
+    const recentPoints = route.filter(p => now - p.timestamp <= timeWindow);
 
     if (recentPoints.length < 2) {
-      return 0;
+      return this.getHeldPace();
     }
 
-    // Calculate distance covered in time window (with spike filtering)
+    // Sum distance in the window (with GPS spike filtering)
     let distance = 0;
     for (let i = 1; i < recentPoints.length; i++) {
       const prev = recentPoints[i - 1];
@@ -666,35 +708,64 @@ class ActivityService {
         prev.latitude,
         prev.longitude,
         curr.latitude,
-        curr.longitude
+        curr.longitude,
       );
 
-      // Skip GPS spikes (implied speed > 50 km/h)
-      const segTime = (curr.timestamp - prev.timestamp) / 1000;
-      if (segTime > 0) {
-        const speedKmh = (segDist / 1000) / (segTime / 3600);
+      // Filter GPS spikes: skip segments implying > 50 km/h
+      const segTimeSec = (curr.timestamp - prev.timestamp) / 1000;
+      if (segTimeSec > 0) {
+        const speedKmh = (segDist / 1000) / (segTimeSec / 3600);
         if (speedKmh > 50) continue;
       }
 
       distance += segDist;
     }
 
-    // Calculate time span
-    const timeSpan = (recentPoints[recentPoints.length - 1].timestamp - recentPoints[0].timestamp) / 1000;
+    const timeSpanSec =
+      (recentPoints[recentPoints.length - 1].timestamp -
+        recentPoints[0].timestamp) /
+      1000;
 
-    if (distance <= 0 || timeSpan <= 0) {
-      return 0;
+    // Minimum movement threshold: at least 2 m in the window to register
+    // a valid sample. Prevents GPS drift at standstill from producing
+    // wildly high pace values.
+    if (distance < 2 || timeSpanSec <= 0) {
+      return this.getHeldPace();
     }
 
-    const distanceKm = distance / 1000;
-    const pace = timeSpan / distanceKm; // seconds per km
+    const rawPace = timeSpanSec / (distance / 1000); // seconds per km
 
-    // Bounds check: return 0 for unrealistic current pace
-    if (pace < 90 || pace > 3600 || !isFinite(pace)) {
-      return 0;
+    // Sanity bounds — anything outside [90 s/km, 5400 s/km] is noise
+    if (rawPace < 90 || rawPace > 5400 || !isFinite(rawPace)) {
+      return this.getHeldPace();
     }
 
-    return pace;
+    // ── Apply EMA smoothing ───────────────────────────────────────────
+    if (this._emaPace === 0) {
+      // First valid sample — seed directly
+      this._emaPace = rawPace;
+    } else {
+      this._emaPace =
+        this.EMA_ALPHA * rawPace + (1 - this.EMA_ALPHA) * this._emaPace;
+    }
+
+    this._lastPaceTimestamp = now;
+    return this._emaPace;
+  }
+
+  /**
+   * Return the held (last-known) pace if it hasn't gone stale,
+   * otherwise return 0 ("--:--").
+   */
+  private getHeldPace(): number {
+    if (this._emaPace <= 0 || this._lastPaceTimestamp === 0) {
+      return 0;
+    }
+    const age = Date.now() - this._lastPaceTimestamp;
+    if (age > this.PACE_STALE_MS) {
+      return 0; // Too old — user has genuinely stopped
+    }
+    return this._emaPace;
   }
 
   /**

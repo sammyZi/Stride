@@ -17,7 +17,6 @@ import {
   ScrollView,
   Switch,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Modal,
 } from 'react-native';
@@ -26,10 +25,12 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Text, Button } from '../../components/common';
+import { ConfirmModal } from '../../components/common';
 import { SyncStatusIndicator } from '../../components/sync';
 import { Colors, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { useAuth } from '../../context';
 import { useTheme } from '../../hooks';
+import { useConfirmModal } from '../../hooks/useConfirmModal';
 import StorageService from '../../services/storage/StorageService';
 import SyncService from '../../services/sync/SyncService';
 import type { MigrationProgress } from '../../services/sync';
@@ -44,6 +45,7 @@ const MIGRATION_DONE_KEY = '@cloud_migration_done';
 export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { user, isAuthenticated, signOut, signInWithGoogle } = useAuth();
   const { colors } = useTheme();
+  const { modalState, showConfirm, hideModal } = useConfirmModal();
 
   // State
   const [cloudSyncEnabled, setCloudSyncEnabled] = useState(false);
@@ -131,7 +133,12 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
 
   const handleToggleCloudSync = useCallback(async (value: boolean) => {
     if (!isAuthenticated || !user) {
-      Alert.alert('Account Required', 'Please sign in to enable cloud sync.');
+      showConfirm(
+        'Account Required',
+        'Please sign in to enable cloud sync.',
+        [{ text: 'OK', onPress: hideModal, style: 'default' }],
+        { icon: 'person-circle-outline', iconColor: Colors.primary }
+      );
       return;
     }
 
@@ -155,11 +162,11 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
         }
       } else {
         // Disable cloud sync — ask for confirmation
-        Alert.alert(
+        showConfirm(
           'Disable Cloud Sync',
           'Your local data will be preserved, but changes will no longer sync to the cloud.',
           [
-            { text: 'Cancel', style: 'cancel', onPress: () => setIsTogglingSync(false) },
+            { text: 'Cancel', onPress: () => { hideModal(); setIsTogglingSync(false); }, style: 'cancel' },
             {
               text: 'Disable',
               style: 'destructive',
@@ -168,27 +175,34 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
                 await StorageService.disableCloudSync();
                 setCloudSyncEnabled(false);
                 setIsTogglingSync(false);
+                hideModal();
               },
             },
           ],
+          { icon: 'cloud-offline-outline', iconColor: Colors.warning }
         );
         return;
       }
     } catch {
-      Alert.alert('Error', 'Failed to update sync settings. Please try again.');
+      showConfirm(
+        'Error',
+        'Failed to update sync settings. Please try again.',
+        [{ text: 'OK', onPress: hideModal, style: 'default' }],
+        { icon: 'alert-circle', iconColor: Colors.error }
+      );
     } finally {
       setIsTogglingSync(false);
     }
-  }, [isAuthenticated, user, runMigration]);
+  }, [isAuthenticated, user, runMigration, showConfirm, hideModal]);
 
   // ── Logout ─────────────────────────────────────────────────────────────
 
   const handleLogout = useCallback(() => {
-    Alert.alert(
+    showConfirm(
       'Log Out',
       'Are you sure you want to log out? Your local data will be preserved.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Cancel', onPress: hideModal, style: 'cancel' },
         {
           text: 'Log Out',
           style: 'destructive',
@@ -197,16 +211,26 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
             try {
               await SyncService.shutdown();
               await signOut();
+              hideModal();
             } catch {
-              Alert.alert('Error', 'Failed to log out. Please try again.');
+              hideModal();
+              setTimeout(() => {
+                showConfirm(
+                  'Error',
+                  'Failed to log out. Please try again.',
+                  [{ text: 'OK', onPress: hideModal, style: 'default' }],
+                  { icon: 'alert-circle', iconColor: Colors.error }
+                );
+              }, 300);
             } finally {
               setIsLoggingOut(false);
             }
           },
         },
       ],
+      { icon: 'log-out-outline', iconColor: Colors.error }
     );
-  }, [signOut]);
+  }, [signOut, showConfirm, hideModal]);
 
   // ── Render: Not authenticated ──────────────────────────────────────────
 
@@ -493,6 +517,18 @@ export const AccountSettingsScreen: React.FC<{ navigation: any }> = ({ navigatio
           </View>
         </View>
       </Modal>
+
+      <ConfirmModal
+        visible={modalState.visible}
+        title={modalState.title}
+        message={modalState.message}
+        icon={modalState.icon as any}
+        iconColor={modalState.iconColor}
+        buttons={modalState.buttons}
+        loading={modalState.loading}
+        loadingMessage={modalState.loadingMessage}
+        onRequestClose={hideModal}
+      />
     </SafeAreaView>
   );
 };

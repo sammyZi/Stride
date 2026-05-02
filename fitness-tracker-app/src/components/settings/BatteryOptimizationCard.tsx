@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Text } from '@/components';
+import { Text } from '@/components/common';
 import { useTheme } from '@/hooks';
 import BatteryOptimizationService from '@/services/battery/BatteryOptimizationService';
 
