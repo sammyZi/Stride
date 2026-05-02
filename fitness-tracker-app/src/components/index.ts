@@ -22,3 +22,6 @@ export { BatteryOptimizationCard } from './settings/BatteryOptimizationCard';
 
 // Chart components
 export { DistanceChart, PaceChart } from './charts';
+
+// Sync components
+export { SyncStatusIndicator, SyncToastOverlay } from './sync';
