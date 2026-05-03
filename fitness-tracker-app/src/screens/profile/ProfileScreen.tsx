@@ -43,6 +43,7 @@ import { useTheme } from '../../hooks';
 import { useStatistics } from '../../hooks/useStatistics';
 import { Colors, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import StorageService from '../../services/storage/StorageService';
+import SyncService from '../../services/sync/SyncService';
 import { UserProfile, UserSettings, StatsPeriod, Activity } from '../../types';
 import { ProgressChartCard } from '../../components/stats/ProgressChartCard';
 import { formatDistanceValue, formatDuration, formatDistance, formatPace, formatCalories } from '../../utils/formatting';
@@ -86,6 +87,16 @@ export const ProfileScreen: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    try {
+      const syncResult = await SyncService.forceManualSync();
+      if (!syncResult.success) {
+        // Show an error if sync failed
+        console.warn('Sync partially failed:', syncResult.errors);
+      }
+    } catch (e) {
+      console.error('Manual sync error', e);
+    }
+    // Reload local state with the newly downloaded/merged data
     await Promise.all([loadProfile(), refreshStats()]);
     setRefreshing(false);
   };
@@ -340,6 +351,14 @@ export const ProfileScreen: React.FC = () => {
         <Text variant="large" weight="bold" color={colors.textPrimary}>
           Profile & Stats
         </Text>
+        <TouchableOpacity 
+          onPress={handleRefresh} 
+          disabled={refreshing}
+          style={[styles.syncButton, { backgroundColor: colors.surface }]}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="sync-circle-outline" size={24} color={refreshing ? colors.disabled : colors.primary} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -691,7 +710,15 @@ const styles = StyleSheet.create({
     height: 56,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
+  },
+  syncButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollView: {
     flex: 1,

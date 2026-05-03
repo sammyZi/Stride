@@ -95,6 +95,7 @@ function profileToRow(profile: UserProfile, userId: string) {
     profile_picture_url: profile.profilePictureUri ?? null,
     weight: profile.weight ?? null,
     height: profile.height ?? null,
+    created_at: new Date(profile.createdAt).toISOString(),
     updated_at: new Date().toISOString(),
   };
 }
@@ -114,6 +115,10 @@ function rowToProfile(row: any): UserProfile {
 
 /** Convert a local Goal to a Supabase row. */
 function goalToRow(goal: Goal, userId: string) {
+  // Database 'progress' is DECIMAL(5,2) max 999.99.
+  // Convert absolute progress to percentage to prevent overflow.
+  const progressPercent = goal.target > 0 ? (goal.progress / goal.target) * 100 : 0;
+  
   return {
     id: goal.id,
     user_id: userId,
@@ -122,7 +127,7 @@ function goalToRow(goal: Goal, userId: string) {
     period: goal.period,
     start_date: new Date(goal.startDate).toISOString(),
     end_date: new Date(goal.endDate).toISOString(),
-    progress: goal.progress,
+    progress: Math.min(progressPercent, 999.99), // Cap to max allowed by DB schema
     achieved: goal.achieved,
     created_at: new Date(goal.createdAt).toISOString(),
   };
@@ -130,14 +135,19 @@ function goalToRow(goal: Goal, userId: string) {
 
 /** Convert a Supabase goal row to a local Goal. */
 function rowToGoal(row: any): Goal {
+  // Convert percentage back to absolute progress value
+  const target = Number(row.target);
+  const progressPercent = Number(row.progress);
+  const absoluteProgress = target > 0 ? (progressPercent / 100) * target : 0;
+
   return {
     id: row.id,
     type: row.type,
-    target: Number(row.target),
+    target: target,
     period: row.period,
     startDate: new Date(row.start_date).getTime(),
     endDate: new Date(row.end_date).getTime(),
-    progress: Number(row.progress),
+    progress: absoluteProgress,
     achieved: row.achieved,
     createdAt: new Date(row.created_at).getTime(),
   };
@@ -836,6 +846,38 @@ class SyncService {
   async clearQueue(): Promise<void> {
     await this._queue.clear();
     logger.log('SyncService: queue cleared');
+  }
+
+  /**
+   * Perform a full round-trip manual sync.
+   * Cleans up stale artifacts, pushes local data, and downloads fresh remote data.
+   */
+  async forceManualSync(): Promise<SyncResult> {
+    if (!this._userId) return makeSyncResult(0, 1, [{ itemId: 'sync', operation: 'upload', code: 'CONFIG_MISSING', error: 'User not initialized', timestamp: Date.now() }]);
+    
+    try {
+      // 1. Clean up queue artifacts to prevent stale data corruption loops
+      await this.clearQueue();
+      
+      // 2. Perform fresh download (which merges cloud truth into local)
+      await this.downloadAllData();
+      
+      // 3. Re-upload all merged local data to cloud
+      const profile = await StorageService.getUserProfile();
+      if (profile) await this.syncUserProfile(profile);
+      
+      const goalsRes = await this.syncGoals();
+      const activitiesRes = await this.syncAllActivities();
+      
+      return makeSyncResult(
+        goalsRes.syncedCount + activitiesRes.syncedCount + 1, // +1 for profile
+        goalsRes.failedCount + activitiesRes.failedCount,
+        [...goalsRes.errors, ...activitiesRes.errors]
+      );
+    } catch (err: any) {
+      logger.error('Manual sync failed', err);
+      return makeSyncResult(0, 1, [{ itemId: 'sync', operation: 'upload', code: 'SYNC_UNKNOWN_ERROR', error: err.message, timestamp: Date.now() }]);
+    }
   }
 
   // ── Background sync ────────────────────────────────────────────────────
