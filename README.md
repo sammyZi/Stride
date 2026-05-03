@@ -19,6 +19,13 @@ A Next.js marketing website for the FitTracker app.
 <table>
   <tr>
     <td align="center">
+      <img src="fitness-landing/public/new_ss/login.jpeg" width="180" height="390" alt="Login" />
+      <br />
+      <b>🔐 Login</b>
+      <br />
+      <sub>Secure Google OAuth authentication</sub>
+    </td>
+    <td align="center">
       <img src="fitness-landing/public/new_ss/activity.jpeg" width="180" height="390" alt="Activity Tracking" />
       <br />
       <b>🏃 Activity Tracking</b>
@@ -32,6 +39,8 @@ A Next.js marketing website for the FitTracker app.
       <br />
       <sub>Browse past activities & route maps</sub>
     </td>
+  </tr>
+  <tr>
     <td align="center">
       <img src="fitness-landing/public/new_ss/goals.jpeg" width="180" height="390" alt="Goals" />
       <br />
@@ -39,8 +48,6 @@ A Next.js marketing website for the FitTracker app.
       <br />
       <sub>Set & track daily/weekly targets</sub>
     </td>
-  </tr>
-  <tr>
     <td align="center">
       <img src="fitness-landing/public/new_ss/profile_stats.jpeg" width="180" height="390" alt="Profile" />
       <br />
@@ -55,6 +62,8 @@ A Next.js marketing website for the FitTracker app.
       <br />
       <sub>In-depth metrics for each session</sub>
     </td>
+  </tr>
+  <tr>
     <td align="center">
       <img src="fitness-landing/public/new_ss/settings.jpeg" width="180" height="390" alt="Settings" />
       <br />
@@ -62,6 +71,8 @@ A Next.js marketing website for the FitTracker app.
       <br />
       <sub>Customize preferences & export data</sub>
     </td>
+    <td></td>
+    <td></td>
   </tr>
 </table>
 
