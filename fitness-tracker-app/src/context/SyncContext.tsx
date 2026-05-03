@@ -245,6 +245,7 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     setIsSyncing(true);
     try {
+      // ── Phase 1: Upload local → cloud ─────────────────────────────
       const result = await SyncService.syncAllActivities();
       const goalsResult = await SyncService.syncGoals();
 
@@ -255,6 +256,9 @@ export const SyncProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const totalFailed =
         result.failedCount + goalsResult.failedCount + profileResult.failedCount;
+
+      // ── Phase 2: Download cloud → local ───────────────────────────
+      await SyncService.downloadAllData();
 
       const now = Date.now();
       if (totalFailed === 0) {
