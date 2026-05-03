@@ -55,7 +55,13 @@ A Next.js marketing website for the FitTracker app.
       <br />
       <sub>In-depth metrics for each session</sub>
     </td>
-    <td></td>
+    <td align="center">
+      <img src="fitness-landing/public/new_ss/settings.jpeg" width="180" height="390" alt="Settings" />
+      <br />
+      <b>⚙️ Settings</b>
+      <br />
+      <sub>Customize preferences & export data</sub>
+    </td>
   </tr>
 </table>
 
