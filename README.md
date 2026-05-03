@@ -19,42 +19,59 @@ A Next.js marketing website for the FitTracker app.
 <table>
   <tr>
     <td align="center">
-      <img src="fitness-landing/public/app_ss/activity.jpeg" width="180" height="390" alt="Activity Tracking" />
+      <img src="fitness-landing/public/new_ss/login.jpeg" width="180" height="390" alt="Login" />
+      <br />
+      <b>🔐 Login</b>
+      <br />
+      <sub>Secure Google OAuth authentication</sub>
+    </td>
+    <td align="center">
+      <img src="fitness-landing/public/new_ss/activity.jpeg" width="180" height="390" alt="Activity Tracking" />
       <br />
       <b>🏃 Activity Tracking</b>
       <br />
       <sub>Real-time stats: distance, pace, calories</sub>
     </td>
     <td align="center">
-      <img src="fitness-landing/public/app_ss/history.jpeg" width="180" height="390" alt="History" />
+      <img src="fitness-landing/public/new_ss/history.jpeg" width="180" height="390" alt="History" />
       <br />
       <b>📋 History</b>
       <br />
       <sub>Browse past activities & route maps</sub>
     </td>
+  </tr>
+  <tr>
     <td align="center">
-      <img src="fitness-landing/public/app_ss/goals.jpeg" width="180" height="390" alt="Goals" />
+      <img src="fitness-landing/public/new_ss/goals.jpeg" width="180" height="390" alt="Goals" />
       <br />
       <b>🎯 Goals</b>
       <br />
       <sub>Set & track daily/weekly targets</sub>
     </td>
-  </tr>
-  <tr>
     <td align="center">
-      <img src="fitness-landing/public/app_ss/profile.jpeg" width="180" height="390" alt="Profile" />
+      <img src="fitness-landing/public/new_ss/profile_stats.jpeg" width="180" height="390" alt="Profile" />
       <br />
       <b>👤 Profile</b>
       <br />
       <sub>View stats & activity streaks</sub>
     </td>
     <td align="center">
-      <img src="fitness-landing/public/app_ss/settings.jpeg" width="180" height="390" alt="Settings" />
+      <img src="fitness-landing/public/new_ss/activity_detail.jpeg" width="180" height="390" alt="Activity Details" />
+      <br />
+      <b>📈 Activity Details</b>
+      <br />
+      <sub>In-depth metrics for each session</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="fitness-landing/public/new_ss/settings.jpeg" width="180" height="390" alt="Settings" />
       <br />
       <b>⚙️ Settings</b>
       <br />
       <sub>Customize preferences & export data</sub>
     </td>
+    <td></td>
     <td></td>
   </tr>
 </table>
