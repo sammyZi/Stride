@@ -59,11 +59,17 @@ export const StatsScreen: React.FC = () => {
       return activities;
     }
 
-    const now = Date.now();
-    const startDate =
-      activeTab === 'week'
-        ? now - 7 * 24 * 60 * 60 * 1000
-        : now - 30 * 24 * 60 * 60 * 1000;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    let startDate: number;
+    if (activeTab === 'week') {
+      now.setDate(now.getDate() - now.getDay());
+      startDate = now.getTime();
+    } else {
+      now.setDate(1);
+      startDate = now.getTime();
+    }
 
     return activities.filter((a) => a.startTime >= startDate);
   }, [activities, activeTab]);

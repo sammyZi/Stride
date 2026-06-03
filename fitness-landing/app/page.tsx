@@ -148,9 +148,11 @@ export default function Home() {
             <div className="flex-1 w-full max-w-lg lg:max-w-xl mx-auto mt-8 lg:mt-0">
               <div className="flex justify-center items-end gap-3 sm:gap-5">
                 {/* Left phone */}
-                <div className="hidden sm:block -rotate-6 mt-6 animate-float-slow">
-                  <div className="phone-frame w-28 md:w-32 lg:w-36">
-                    <Image src="/new_ss/activity_detail.jpeg" alt="Activity detail" width={180} height={360} className="w-full h-auto object-cover" />
+                <div className="hidden sm:block mt-6">
+                  <div className="animate-float-slow">
+                    <div className="phone-frame w-28 md:w-32 lg:w-36">
+                      <Image src="/new_ss/activity_detail.jpeg" alt="Activity detail" width={180} height={360} className="w-full h-auto object-cover" />
+                    </div>
                   </div>
                 </div>
                 {/* Center phone */}
@@ -160,9 +162,11 @@ export default function Home() {
                   </div>
                 </div>
                 {/* Right phone */}
-                <div className="hidden sm:block rotate-6 mt-10 animate-float-delayed">
-                  <div className="phone-frame w-28 md:w-32 lg:w-36">
-                    <Image src="/new_ss/goals.jpeg" alt="Goals" width={180} height={360} className="w-full h-auto object-cover" />
+                <div className="hidden sm:block mt-10">
+                  <div className="animate-float-delayed">
+                    <div className="phone-frame w-28 md:w-32 lg:w-36">
+                      <Image src="/new_ss/goals.jpeg" alt="Goals" width={180} height={360} className="w-full h-auto object-cover" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -202,8 +206,10 @@ export default function Home() {
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center">
-              <div className="phone-frame w-52 sm:w-60 animate-float">
-                <Image src="/new_ss/activity.jpeg" alt="Activity" width={256} height={500} className="w-full h-auto object-cover" />
+              <div className="animate-float">
+                <div className="phone-frame w-52 sm:w-60">
+                  <Image src="/new_ss/activity.jpeg" alt="Activity" width={256} height={500} className="w-full h-auto object-cover" />
+                </div>
               </div>
             </div>
           </div>
@@ -226,11 +232,19 @@ export default function Home() {
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center items-end gap-5">
-              <div className="phone-frame w-36 sm:w-44 -rotate-3 animate-float-slow">
-                <Image src="/new_ss/activity_detail.jpeg" alt="Detail 1" width={200} height={400} className="w-full h-auto object-cover" />
+              <div className="-rotate-3">
+                <div className="animate-float-slow">
+                  <div className="phone-frame w-36 sm:w-44">
+                    <Image src="/new_ss/activity_detail.jpeg" alt="Detail 1" width={200} height={400} className="w-full h-auto object-cover" />
+                  </div>
+                </div>
               </div>
-              <div className="phone-frame w-36 sm:w-44 rotate-3 animate-float-delayed mt-10">
-                <Image src="/new_ss/activity_detail (2).jpeg" alt="Detail 2" width={200} height={400} className="w-full h-auto object-cover" />
+              <div className="mt-10">
+                <div className="animate-float-delayed">
+                  <div className="phone-frame w-36 sm:w-44">
+                    <Image src="/new_ss/activity_detail (2).jpeg" alt="Detail 2" width={200} height={400} className="w-full h-auto object-cover" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -253,8 +267,10 @@ export default function Home() {
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center">
-              <div className="phone-frame w-52 sm:w-60 animate-float">
-                <Image src="/new_ss/goals.jpeg" alt="Goals" width={256} height={500} className="w-full h-auto object-cover" />
+              <div className="animate-float">
+                <div className="phone-frame w-52 sm:w-60">
+                  <Image src="/new_ss/goals.jpeg" alt="Goals" width={256} height={500} className="w-full h-auto object-cover" />
+                </div>
               </div>
             </div>
           </div>
@@ -277,8 +293,10 @@ export default function Home() {
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center">
-              <div className="phone-frame w-52 sm:w-60 animate-float-delayed">
-                <Image src="/new_ss/history.jpeg" alt="History" width={256} height={500} className="w-full h-auto object-cover" />
+              <div className="animate-float-delayed">
+                <div className="phone-frame w-52 sm:w-60">
+                  <Image src="/new_ss/history.jpeg" alt="History" width={256} height={500} className="w-full h-auto object-cover" />
+                </div>
               </div>
             </div>
           </div>
@@ -301,14 +319,24 @@ export default function Home() {
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center items-end gap-3 sm:gap-4">
-              <div className="phone-frame w-28 sm:w-36 -rotate-3 mt-8 animate-float-slow">
-                <Image src="/new_ss/profile_stats (3).jpeg" alt="Stats 3" width={180} height={360} className="w-full h-auto object-cover" />
+              <div className="mt-8">
+                <div className="animate-float-slow">
+                  <div className="phone-frame w-28 sm:w-36">
+                    <Image src="/new_ss/profile_stats (3).jpeg" alt="Stats 3" width={180} height={360} className="w-full h-auto object-cover" />
+                  </div>
+                </div>
               </div>
-              <div className="phone-frame w-36 sm:w-48 animate-float">
-                <Image src="/new_ss/profile_stats.jpeg" alt="Profile" width={220} height={440} className="w-full h-auto object-cover" />
+              <div className="animate-float">
+                <div className="phone-frame w-36 sm:w-48">
+                  <Image src="/new_ss/profile_stats.jpeg" alt="Profile" width={220} height={440} className="w-full h-auto object-cover" />
+                </div>
               </div>
-              <div className="phone-frame w-28 sm:w-36 rotate-3 mt-8 animate-float-delayed">
-                <Image src="/new_ss/profile_stats (2).jpeg" alt="Stats 2" width={180} height={360} className="w-full h-auto object-cover" />
+              <div className="mt-8">
+                <div className="animate-float-delayed">
+                  <div className="phone-frame w-28 sm:w-36">
+                    <Image src="/new_ss/profile_stats (2).jpeg" alt="Stats 2" width={180} height={360} className="w-full h-auto object-cover" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -331,8 +359,10 @@ export default function Home() {
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center">
-              <div className="phone-frame w-52 sm:w-60 animate-float">
-                <Image src="/new_ss/settings.jpeg" alt="Settings" width={256} height={500} className="w-full h-auto object-cover" />
+              <div className="animate-float">
+                <div className="phone-frame w-52 sm:w-60">
+                  <Image src="/new_ss/settings.jpeg" alt="Settings" width={256} height={500} className="w-full h-auto object-cover" />
+                </div>
               </div>
             </div>
           </div>
@@ -371,11 +401,17 @@ export default function Home() {
             </div>
             <div className="lg:w-1/2 flex justify-center">
               <div className="relative flex items-end gap-4">
-                <div className="phone-frame w-44 sm:w-52 -rotate-3 animate-float-slow">
-                  <Image src="/new_ss/login.jpeg" alt="Login" width={220} height={440} className="w-full h-auto object-cover" />
+                <div>
+                  <div className="animate-float-slow">
+                    <div className="phone-frame w-44 sm:w-52">
+                      <Image src="/new_ss/login.jpeg" alt="Login" width={220} height={440} className="w-full h-auto object-cover" />
+                    </div>
+                  </div>
                 </div>
-                <div className="phone-frame w-48 sm:w-56 z-10 animate-float">
-                  <Image src="/new_ss/activity.jpeg" alt="App" width={240} height={480} className="w-full h-auto object-cover" />
+                <div className="z-10 animate-float">
+                  <div className="phone-frame w-48 sm:w-56">
+                    <Image src="/new_ss/activity.jpeg" alt="App" width={240} height={480} className="w-full h-auto object-cover" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -447,6 +483,11 @@ export default function Home() {
                     </button>
                   </li>
                 ))}
+                <li>
+                  <a href="/privacy" className="hover:text-white transition-colors">
+                    Privacy Policy
+                  </a>
+                </li>
               </ul>
             </div>
 
