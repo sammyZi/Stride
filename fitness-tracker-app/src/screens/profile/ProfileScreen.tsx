@@ -51,11 +51,28 @@ import { formatDistanceValue, formatDuration, formatDistance, formatPace, format
 
 type TabType = 'week' | 'month' | 'allTime';
 
-const TABS: { key: TabType; label: string }[] = [
-  { key: 'week', label: 'Week' },
-  { key: 'month', label: 'Month' },
-  { key: 'allTime', label: 'All Time' },
-];
+const getWeekDateRange = () => {
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(now.getDate() - start.getDay());
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  
+  const startMonth = start.toLocaleDateString(undefined, { month: 'short' });
+  const endMonth = end.toLocaleDateString(undefined, { month: 'short' });
+  const startDay = start.getDate();
+  const endDay = end.getDate();
+
+  if (startMonth === endMonth) {
+    return `${startMonth} ${startDay}-${endDay}`;
+  }
+  return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+};
+
+const getMonthDateRange = () => {
+  const now = new Date();
+  return now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+};
 
 export const ProfileScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('week');
@@ -312,9 +329,15 @@ export const ProfileScreen: React.FC = () => {
 
   // openEditModal is now defined above with animation
 
+  const tabs: { key: TabType; label: string }[] = [
+    { key: 'week', label: getWeekDateRange() },
+    { key: 'month', label: getMonthDateRange() },
+    { key: 'allTime', label: 'All Time' },
+  ];
+
   const renderTabBar = () => (
     <View style={styles.tabBar}>
-      {TABS.map((tab) => (
+      {tabs.map((tab) => (
         <TouchableOpacity
           key={tab.key}
           style={[styles.tab, activeTab === tab.key && styles.activeTab]}

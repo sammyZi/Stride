@@ -675,12 +675,20 @@ class StorageService {
     let startDate: number;
 
     switch (period) {
-      case 'week':
-        startDate = now - 7 * 24 * 60 * 60 * 1000;
+      case 'week': {
+        const d = new Date(now);
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() - d.getDay());
+        startDate = d.getTime();
         break;
-      case 'month':
-        startDate = now - 30 * 24 * 60 * 60 * 1000;
+      }
+      case 'month': {
+        const d = new Date(now);
+        d.setHours(0, 0, 0, 0);
+        d.setDate(1);
+        startDate = d.getTime();
         break;
+      }
       case 'allTime':
         return this.getActivities();
       default:
