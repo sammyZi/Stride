@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { InteractionManager } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import StorageService from '../services/storage/StorageService';
 import { Statistics, StatsPeriod } from '../types';
@@ -50,6 +51,7 @@ export const useStatistics = (period: StatsPeriod): UseStatisticsReturn => {
 
   // Silently reload whenever the screen regains focus so the latest
   // activity data is reflected without a manual refresh.
+  // Defer until after the tab slide animation finishes for smoothness.
   // Skip the first focus (mount) since the effect above already loads.
   const didMountRef = useRef(false);
   useFocusEffect(
@@ -58,7 +60,10 @@ export const useStatistics = (period: StatsPeriod): UseStatisticsReturn => {
         didMountRef.current = true;
         return;
       }
-      loadStatistics(true);
+      const task = InteractionManager.runAfterInteractions(() => {
+        loadStatistics(true);
+      });
+      return () => task.cancel();
     }, [loadStatistics])
   );
 

@@ -138,7 +138,7 @@ export const ProfileScreen: React.FC = () => {
   const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
 
   // Reload profile every time the screen is focused
-  // (ensures cloud-synced data appears after download)
+  // (ensures cloud-synced data appears after download).
   useFocusEffect(
     useCallback(() => {
       loadProfile();

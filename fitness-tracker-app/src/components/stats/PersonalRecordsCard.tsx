@@ -70,7 +70,7 @@ const RecordItem: React.FC<RecordItemProps> = ({
   </TouchableOpacity>
 );
 
-export const PersonalRecordsCard: React.FC<PersonalRecordsCardProps> = ({
+const PersonalRecordsCardComponent: React.FC<PersonalRecordsCardProps> = ({
   records,
   units,
   showBadges = true,
@@ -184,6 +184,9 @@ export const PersonalRecordsCard: React.FC<PersonalRecordsCardProps> = ({
     </View>
   );
 };
+
+// Memoized so the records list doesn't re-render on unrelated screen updates.
+export const PersonalRecordsCard = React.memo(PersonalRecordsCardComponent);
 
 const styles = StyleSheet.create({
   header: {
