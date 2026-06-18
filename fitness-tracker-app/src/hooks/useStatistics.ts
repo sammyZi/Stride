@@ -3,7 +3,8 @@
  * Custom hook for fetching and managing statistics data
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import StorageService from '../services/storage/StorageService';
 import { Statistics, StatsPeriod } from '../types';
 import { useSync } from '../context';
@@ -21,9 +22,12 @@ export const useStatistics = (period: StatsPeriod): UseStatisticsReturn => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const loadStatistics = useCallback(async () => {
+  const loadStatistics = useCallback(async (silent: boolean = false) => {
     try {
-      setLoading(true);
+      // On a silent refresh keep the existing stats visible (no spinner)
+      if (!silent) {
+        setLoading(true);
+      }
       setError(null);
       const statistics = await StorageService.getStatistics(period);
       setStats(statistics);
@@ -43,6 +47,20 @@ export const useStatistics = (period: StatsPeriod): UseStatisticsReturn => {
   useEffect(() => {
     loadStatistics();
   }, [loadStatistics, syncVersion]);
+
+  // Silently reload whenever the screen regains focus so the latest
+  // activity data is reflected without a manual refresh.
+  // Skip the first focus (mount) since the effect above already loads.
+  const didMountRef = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!didMountRef.current) {
+        didMountRef.current = true;
+        return;
+      }
+      loadStatistics(true);
+    }, [loadStatistics])
+  );
 
   return {
     stats,

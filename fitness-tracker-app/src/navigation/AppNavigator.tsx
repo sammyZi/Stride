@@ -198,7 +198,9 @@ const MainTabNavigator: React.FC = () => {
           fontSize: 12,
         },
         headerShown: false,
-        lazy: true,
+        // Pre-render tab screens so they don't flash a loading state the
+        // first time each tab is opened.
+        lazy: false,
       }}
     >
       <Tab.Screen

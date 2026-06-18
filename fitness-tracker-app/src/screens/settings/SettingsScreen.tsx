@@ -15,7 +15,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, AnimatedToggle } from '../../components/common';
 import { SyncStatusIndicator } from '../../components/sync';
@@ -143,6 +143,7 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
     isHapticEnabled,
   } = useSettings();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const getIntervalLabel = (interval: number, units: UnitSystem): string => {
     const intervalOption = ANNOUNCEMENT_INTERVALS.find(i => i.value === interval);
@@ -157,7 +158,7 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
 
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <View style={[styles.header, { backgroundColor: colors.background }]}>
         <Text variant="large" weight="bold" color={colors.textPrimary}>Settings</Text>
@@ -400,7 +401,7 @@ export const SettingsScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
 
         <View style={{ height: 40 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

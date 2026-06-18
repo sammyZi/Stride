@@ -3,7 +3,8 @@
  * Custom hook for managing goals
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { Goal, GoalType, GoalPeriod } from '../types';
 import StorageService from '../services/storage/StorageService';
 import GoalsService from '../services/goals/GoalsService';
@@ -26,9 +27,12 @@ export const useGoals = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const loadGoals = useCallback(async () => {
+  const loadGoals = useCallback(async (silent: boolean = false) => {
     try {
-      setLoading(true);
+      // On a silent refresh keep the existing data visible (no spinner)
+      if (!silent) {
+        setLoading(true);
+      }
       setError(null);
 
       // Update progress for all goals
@@ -56,6 +60,20 @@ export const useGoals = () => {
   useEffect(() => {
     loadGoals();
   }, [loadGoals, syncVersion]);
+
+  // Silently reload whenever the screen regains focus so newly tracked
+  // activities are reflected without a manual pull-to-refresh.
+  // Skip the very first focus (mount) since the effect above already loads.
+  const didMountRef = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!didMountRef.current) {
+        didMountRef.current = true;
+        return;
+      }
+      loadGoals(true);
+    }, [loadGoals])
+  );
 
   const createGoal = useCallback(
     async (type: GoalType, target: number, period: GoalPeriod): Promise<void> => {

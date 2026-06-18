@@ -3,7 +3,8 @@
  * Custom hook for managing activity history with filtering and pagination
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import StorageService from '../services/storage/StorageService';
 import { Activity, ActivityType, ActivityFilters } from '../types';
 import { useSync } from '../context';
@@ -136,6 +137,22 @@ export const useActivityHistory = (
       loadActivities(true);
     }
   }, [dateRangeFilter, activityTypeFilter, syncVersion]);
+
+  // Silently reload whenever the screen regains focus so newly tracked
+  // activities appear without a manual pull-to-refresh.
+  // Skip the first focus (mount) since the effect above already loads.
+  const didMountRef = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!didMountRef.current) {
+        didMountRef.current = true;
+        return;
+      }
+      if (autoLoad) {
+        refresh(true);
+      }
+    }, [autoLoad, refresh])
+  );
 
   // Load more when page changes
   useEffect(() => {
