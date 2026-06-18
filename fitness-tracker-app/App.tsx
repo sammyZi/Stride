@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Platform, Animated as RNAnimated, View } from 'react-native';
+import { StyleSheet, Platform, Animated as RNAnimated, View, DeviceEventEmitter } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
@@ -49,6 +49,9 @@ function AppContent() {
   const [notificationsInitialized, setNotificationsInitialized] = useState(false);
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
   const [splashHidden, setSplashHidden] = useState(false);
+  // True once the main Activity screen has fully mounted (or after a
+  // safety timeout) so we don't reveal a blank frame under the splash.
+  const [activityReady, setActivityReady] = useState(false);
 
   // ── Theme transition animation ─────────────────────────────────────────────
   const themeOverlayOpacity = useRef(new RNAnimated.Value(0)).current;
@@ -108,6 +111,20 @@ function AppContent() {
       setMinTimeElapsed(true);
     }, MIN_SPLASH_DURATION);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Listen for the Activity screen reporting that it has fully mounted.
+  // Also start a safety timeout so the splash can never get stuck if the
+  // signal never arrives (e.g. onboarding flow, or an unexpected error).
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('ACTIVITY_SCREEN_READY', () => {
+      setActivityReady(true);
+    });
+    const safety = setTimeout(() => setActivityReady(true), 8000);
+    return () => {
+      sub.remove();
+      clearTimeout(safety);
+    };
   }, []);
 
   // Initialize storage on app launch
@@ -202,16 +219,22 @@ function AppContent() {
 
   const isAppReady = allServicesReady && minTimeElapsed;
 
-  // Hide splash screen when everything is ready
+  // If onboarding is shown, the Activity screen won't mount, so we shouldn't
+  // wait for its ready signal. Otherwise, keep the splash up until the
+  // Activity screen has fully mounted.
+  const willShowOnboarding = showPrivacyConsent || showPermissions;
+  const canHideSplash = isAppReady && (willShowOnboarding || activityReady);
+
+  // Hide splash screen when everything is ready and the first screen is mounted
   useEffect(() => {
-    if (isAppReady && !splashHidden) {
+    if (canHideSplash && !splashHidden) {
       const hideSplash = async () => {
         await SplashScreen.hideAsync();
         setSplashHidden(true);
       };
       hideSplash();
     }
-  }, [isAppReady, splashHidden]);
+  }, [canHideSplash, splashHidden]);
 
   if (!isAppReady) {
     return null;

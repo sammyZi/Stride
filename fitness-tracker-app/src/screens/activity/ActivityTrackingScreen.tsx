@@ -9,6 +9,8 @@ import {
   Platform,
   BackHandler,
   Animated,
+  DeviceEventEmitter,
+  InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -63,6 +65,16 @@ export const ActivityTrackingScreen: React.FC<ActivityTrackingScreenProps> = ({ 
 
   // Pulse animation for live pace indicator
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Signal App.tsx that the main Activity screen has fully mounted so the
+  // splash screen can be dismissed only once this page is painted (avoids
+  // showing a blank/half-mounted frame on launch).
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      DeviceEventEmitter.emit('ACTIVITY_SCREEN_READY');
+    });
+    return () => task.cancel();
+  }, []);
 
   useEffect(() => {
     if (isTracking && !isPaused) {
