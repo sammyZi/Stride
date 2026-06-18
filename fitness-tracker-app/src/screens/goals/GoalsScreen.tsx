@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, ConfirmModal } from '../../components/common';
 import { GoalCard } from '../../components/goals/GoalCard';
@@ -27,6 +27,7 @@ export const GoalsScreen: React.FC = () => {
   const { activeGoals, achievedGoals, loading, createGoal, updateGoal, deleteGoal, refresh } = useGoals();
   const { settings } = useSettings();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { modalState, showConfirm, hideModal } = useConfirmModal();
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -296,7 +297,7 @@ export const GoalsScreen: React.FC = () => {
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.background }]}>
         <Text variant="large" weight="bold" color={colors.textPrimary}>
@@ -381,7 +382,7 @@ export const GoalsScreen: React.FC = () => {
         loadingMessage={modalState.loadingMessage}
         onRequestClose={hideModal}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 

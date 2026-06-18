@@ -232,7 +232,7 @@ export default function Home() {
               </div>
             </div>
             <div className="md:w-1/2 flex justify-center items-end gap-5">
-              <div className="-rotate-3">
+              <div>
                 <div className="animate-float-slow">
                   <div className="phone-frame w-36 sm:w-44">
                     <Image src="/new_ss/activity_detail.jpeg" alt="Detail 1" width={200} height={400} className="w-full h-auto object-cover" />

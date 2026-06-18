@@ -31,7 +31,7 @@ const generateUUID = (): string => {
     return v.toString(16);
   });
 };
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -79,6 +79,7 @@ export const ProfileScreen: React.FC = () => {
   const { modalState, showConfirm, hideModal } = useConfirmModal();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [allActivities, setAllActivities] = useState<Activity[]>([]);
@@ -407,7 +408,7 @@ export const ProfileScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       {/* ── Header ────────────────────────────────────────────────── */}
       <View style={[styles.header, { backgroundColor: colors.background }]}>
         <Text variant="large" weight="bold" color={colors.textPrimary}>
@@ -767,7 +768,7 @@ export const ProfileScreen: React.FC = () => {
           )}
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
