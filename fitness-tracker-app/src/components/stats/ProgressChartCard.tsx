@@ -18,7 +18,7 @@ const screenWidth = Dimensions.get('window').width;
 // Total horizontal insets: scrollContent padding (16×2) + section padding
 const horizontalInsets = Spacing.lg * 2 + Spacing.md;
 
-export const ProgressChartCard: React.FC<ProgressChartCardProps> = ({ activities, units }) => {
+const ProgressChartCardComponent: React.FC<ProgressChartCardProps> = ({ activities, units }) => {
   const { colors } = useTheme();
   const [chartType, setChartType] = useState<ChartType>('distance');
 
@@ -151,6 +151,10 @@ export const ProgressChartCard: React.FC<ProgressChartCardProps> = ({ activities
     </View>
   );
 };
+
+// Memoized so the (expensive) SVG chart only re-renders when its data changes,
+// not on unrelated Profile screen state updates.
+export const ProgressChartCard = React.memo(ProgressChartCardComponent);
 
 const styles = StyleSheet.create({
   section: {

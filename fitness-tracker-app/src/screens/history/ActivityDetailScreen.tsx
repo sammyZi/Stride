@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { captureRef } from 'react-native-view-shot';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, ShareModal, ShareOption } from '../../components/common';
 import { StaticRouteMap } from '../../components/map';
 import { ActivityShareCard } from '../../components/activity/ActivityShareCard';
@@ -49,7 +50,8 @@ export const ActivityDetailScreen: React.FC<any> = ({
   navigation,
 }) => {
   const { colors, isDark } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(colors, insets.top), [colors, insets.top]);
 
   const { activityId } = route.params;
   const [activity, setActivity] = useState<Activity | null>(null);
@@ -615,13 +617,13 @@ export const ActivityDetailScreen: React.FC<any> = ({
   );
 };
 
-const createStyles = (colors: any) => StyleSheet.create({
+const createStyles = (colors: any, insetTop: number) => StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.surface,
   },
   statusBarSpacer: {
-    height: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 44,
+    height: insetTop,
   },
   centered: {
     flex: 1,

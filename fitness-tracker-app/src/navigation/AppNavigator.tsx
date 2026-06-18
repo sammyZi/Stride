@@ -201,6 +201,11 @@ const MainTabNavigator: React.FC = () => {
         // Pre-render tab screens so they don't flash a loading state the
         // first time each tab is opened.
         lazy: false,
+        // Suspend inactive screens (incl. the heavy MapView on the Activity
+        // tab) so they stop consuming the JS/UI thread while you're on
+        // another tab. Safe here because the tracking timer is computed from
+        // absolute timestamps.
+        freezeOnBlur: true,
       }}
     >
       <Tab.Screen

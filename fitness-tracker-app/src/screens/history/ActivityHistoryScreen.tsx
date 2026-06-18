@@ -16,7 +16,7 @@ import {
   ActivityIndicator,
   InteractionManager,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../../components/common';
@@ -49,6 +49,7 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
 
   const { colors } = useTheme();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
 
   // Filter modal state
   const [filterModalVisible, setFilterModalVisible] = useState(false);
@@ -282,7 +283,7 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.statusBarSpacer} />
       {loading && activities.length === 0 ? (
         <View style={styles.loadingContainer}>
@@ -332,7 +333,6 @@ const createStyles = (colors: typeof LightColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 44,
   },
   statusBarSpacer: {
     height: 0,

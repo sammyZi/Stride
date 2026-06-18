@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { InteractionManager } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import StorageService from '../services/storage/StorageService';
 import { Activity, ActivityType, ActivityFilters } from '../types';
@@ -140,6 +141,7 @@ export const useActivityHistory = (
 
   // Silently reload whenever the screen regains focus so newly tracked
   // activities appear without a manual pull-to-refresh.
+  // Defer until after the tab slide animation finishes for smoothness.
   // Skip the first focus (mount) since the effect above already loads.
   const didMountRef = useRef(false);
   useFocusEffect(
@@ -149,7 +151,10 @@ export const useActivityHistory = (
         return;
       }
       if (autoLoad) {
-        refresh(true);
+        const task = InteractionManager.runAfterInteractions(() => {
+          refresh(true);
+        });
+        return () => task.cancel();
       }
     }, [autoLoad, refresh])
   );
