@@ -37,6 +37,7 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
   const {
     activities,
     loading,
+    loadingMore,
     refreshing,
     hasMore,
     activityTypeFilter,
@@ -122,21 +123,12 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
 
   const keyExtractor = React.useCallback((item: Activity) => item.id, []);
 
-  const getItemLayout = React.useCallback(
-    (_: any, index: number) => ({
-      length: 120, // Approximate card height
-      offset: 120 * index,
-      index,
-    }),
-    []
-  );
-
   const handleRefresh = () => {
     refresh();
   };
 
   const handleLoadMore = () => {
-    if (!loading && hasMore) {
+    if (!loading && !loadingMore && hasMore) {
       loadMore();
     }
   };
@@ -191,16 +183,24 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
   ), [activityTypeFilter, dateRangeFilter, activities, units, colors]);
 
   const renderListFooter = React.useCallback(() => {
-    if (!hasMore || activities.length === 0) return null;
-
-    return (
-      <View style={styles.footer}>
-        <Text variant="small" color={colors.textSecondary}>
-          {loading ? 'Loading more...' : 'Pull to load more'}
-        </Text>
-      </View>
-    );
-  }, [hasMore, activities.length, loading, colors]);
+    if (activities.length === 0) return null;
+    if (loadingMore) {
+      return (
+        <View style={styles.footer}>
+          <Text variant="small" color={colors.textSecondary}>Loading more...</Text>
+        </View>
+      );
+    }
+    if (!hasMore) {
+      // All activities loaded — show a stable end-of-list indicator to prevent layout jumps
+      return (
+        <View style={styles.footer}>
+          <Text variant="small" color={colors.textSecondary}>All activities loaded</Text>
+        </View>
+      );
+    }
+    return null;
+  }, [hasMore, loadingMore, activities.length, colors]);
 
   const renderEmptyState = () => (
     <EmptyState
@@ -310,7 +310,7 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
             />
           }
           onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
+          onEndReachedThreshold={0.2}
           showsVerticalScrollIndicator={false}
           scrollEnabled={scrollEnabled}
           removeClippedSubviews={false}
