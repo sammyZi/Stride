@@ -18,6 +18,7 @@ interface UseActivityHistoryOptions {
 interface UseActivityHistoryReturn {
   activities: Activity[];
   loading: boolean;
+  loadingMore: boolean;
   refreshing: boolean;
   hasMore: boolean;
   error: Error | null;
@@ -39,10 +40,12 @@ export const useActivityHistory = (
   const [allActivities, setAllActivities] = useState<Activity[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(autoLoad);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const loadingMoreRef = useRef(false);
 
   // Filter states
   const [activityTypeFilter, setActivityTypeFilter] = useState<ActivityType | 'all'>('all');
@@ -101,6 +104,8 @@ export const useActivityHistory = (
       } finally {
         setLoading(false);
         setRefreshing(false);
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
       }
     },
     [dateRangeFilter, activityTypeFilter, page, itemsPerPage, allActivities.length]
@@ -120,7 +125,9 @@ export const useActivityHistory = (
    * Load more activities (pagination)
    */
   const loadMore = useCallback(async () => {
-    if (!loading && hasMore) {
+    if (!loading && !loadingMoreRef.current && hasMore) {
+      loadingMoreRef.current = true;
+      setLoadingMore(true);
       setPage((prev) => prev + 1);
     }
   }, [loading, hasMore]);
@@ -169,6 +176,7 @@ export const useActivityHistory = (
   return {
     activities,
     loading,
+    loadingMore,
     refreshing,
     hasMore,
     error,
