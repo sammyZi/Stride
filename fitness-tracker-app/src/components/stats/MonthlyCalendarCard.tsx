@@ -11,15 +11,31 @@ import { Activity, UnitSystem } from '../../types';
 interface MonthlyCalendarCardProps {
   activities: Activity[];
   units: UnitSystem;
+  registeredAt?: number;
 }
 
 const DAYS_OF_WEEK = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-export const MonthlyCalendarCard: React.FC<MonthlyCalendarCardProps> = ({ activities, units }) => {
+export const MonthlyCalendarCard: React.FC<MonthlyCalendarCardProps> = ({ activities, units, registeredAt }) => {
   const { colors } = useTheme();
   const navigation = useNavigation<any>();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(new Date().toDateString());
+
+  // Earliest month the user can navigate back to (registration month)
+  const minMonth = useMemo(() => {
+    if (!registeredAt) return null;
+    const d = new Date(registeredAt);
+    return { year: d.getFullYear(), month: d.getMonth() };
+  }, [registeredAt]);
+
+  const isAtMinMonth = useMemo(() => {
+    if (!minMonth) return false;
+    return (
+      currentDate.getFullYear() === minMonth.year &&
+      currentDate.getMonth() === minMonth.month
+    );
+  }, [currentDate, minMonth]);
 
   // Group activities by date string
   const activitiesByDate = useMemo(() => {
@@ -76,6 +92,7 @@ export const MonthlyCalendarCard: React.FC<MonthlyCalendarCardProps> = ({ activi
   }, [currentDate, activitiesByDate]);
 
   const handlePrevMonth = () => {
+    if (isAtMinMonth) return;
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   };
 
@@ -92,8 +109,8 @@ export const MonthlyCalendarCard: React.FC<MonthlyCalendarCardProps> = ({ activi
       <Card variant="outlined" style={styles.card}>
         {/* Header: Month Navigation */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={handlePrevMonth} style={styles.navButton}>
-            <Text variant="small" weight="semiBold" color={colors.primary}>&lt; Prev</Text>
+          <TouchableOpacity onPress={handlePrevMonth} style={styles.navButton} disabled={isAtMinMonth}>
+            <Text variant="small" weight="semiBold" color={isAtMinMonth ? colors.disabled : colors.primary}>&lt; Prev</Text>
           </TouchableOpacity>
           <Text variant="mediumLarge" weight="bold" color={colors.textPrimary}>
             {monthName}
