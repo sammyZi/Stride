@@ -635,11 +635,14 @@ class StorageService {
   // ==================== Statistics ====================
 
   /**
-   * Calculate statistics for a given period
+   * Calculate statistics for a given period, or a custom date range when
+   * both startDate and endDate are provided (used for month picker).
    */
-  async getStatistics(period: StatsPeriod): Promise<Statistics> {
+  async getStatistics(period: StatsPeriod, dateRange?: { startDate: number; endDate: number }): Promise<Statistics> {
     try {
-      const activities = await this.getActivitiesForPeriod(period);
+      const activities = dateRange
+        ? await this.getActivities({ startDate: dateRange.startDate, endDate: dateRange.endDate })
+        : await this.getActivitiesForPeriod(period);
 
       const totalDistance = activities.reduce((sum, a) => sum + a.distance, 0);
       const totalDuration = activities.reduce((sum, a) => sum + a.duration, 0);

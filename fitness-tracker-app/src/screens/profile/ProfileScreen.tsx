@@ -74,15 +74,63 @@ const getMonthDateRange = () => {
   return now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 };
 
+/** Generate a list of the last 13 months (current month first) */
+const getMonthOptions = (): { label: string; year: number; month: number }[] => {
+  const options: { label: string; year: number; month: number }[] = [];
+  const now = new Date();
+  for (let i = 0; i < 13; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    options.push({
+      label: d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
+      year: d.getFullYear(),
+      month: d.getMonth(),
+    });
+  }
+  return options;
+};
+
 export const ProfileScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('week');
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState(0); // 0 = current month
+  const [monthPickerVisible, setMonthPickerVisible] = useState(false);
+
+  // All candidate months (last 13, current first)
+  const allMonthOptions = useMemo(() => getMonthOptions(), []);
+
+  // Must be declared before monthOptions memo that depends on it
+  const [allActivities, setAllActivities] = useState<Activity[]>([]);
+
+  // Only keep months that have at least one activity
+  const monthOptions = useMemo(() => {
+    if (allActivities.length === 0) return allMonthOptions;
+    const activeMonths = new Set(
+      allActivities.map((a) => {
+        const d = new Date(a.startTime);
+        return `${d.getFullYear()}-${d.getMonth()}`;
+      })
+    );
+    return allMonthOptions.filter((opt) => activeMonths.has(`${opt.year}-${opt.month}`));
+  }, [allActivities, allMonthOptions]);
+
+  // If the selected index is out of bounds after filtering, reset to 0
+  const safeMonthIndex = Math.min(selectedMonthIndex, Math.max(0, monthOptions.length - 1));
+
+  // Compute start/end timestamps for the selected month (used when tab = 'month')
+  const selectedMonthDateRange = useMemo(() => {
+    if (monthOptions.length === 0) return { startDate: 0, endDate: Date.now() };
+    const opt = monthOptions[safeMonthIndex];
+    const start = new Date(opt.year, opt.month, 1);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(opt.year, opt.month + 1, 0);
+    end.setHours(23, 59, 59, 999);
+    return { startDate: start.getTime(), endDate: end.getTime() };
+  }, [safeMonthIndex, monthOptions]);
   const { modalState, showConfirm, hideModal } = useConfirmModal();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [settings, setSettings] = useState<UserSettings | null>(null);
-  const [allActivities, setAllActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -128,7 +176,10 @@ export const ProfileScreen: React.FC = () => {
   }, []);
 
   // Use statistics hook for detailed stats
-  const { stats, loading: statsLoading, refresh: refreshStats } = useStatistics(activeTab as StatsPeriod);
+  const { stats, loading: statsLoading, refresh: refreshStats } = useStatistics(
+    activeTab as StatsPeriod,
+    activeTab === 'month' ? selectedMonthDateRange : undefined,
+  );
 
   // Edit form state
   const [editName, setEditName] = useState('');
@@ -332,31 +383,90 @@ export const ProfileScreen: React.FC = () => {
 
   const tabs: { key: TabType; label: string }[] = [
     { key: 'week', label: getWeekDateRange() },
-    { key: 'month', label: getMonthDateRange() },
+    { key: 'month', label: monthOptions.length > 0 ? monthOptions[safeMonthIndex].label : getMonthDateRange() },
     { key: 'allTime', label: 'All Time' },
   ];
 
   const renderTabBar = () => (
     <View style={styles.tabBar}>
-      {tabs.map((tab) => (
-        <TouchableOpacity
-          key={tab.key}
-          style={[styles.tab, activeTab === tab.key && styles.activeTab]}
-          onPress={() => setActiveTab(tab.key)}
-          activeOpacity={0.7}
-        >
-          <Text
-            variant="small"
-            weight={activeTab === tab.key ? 'bold' : 'regular'}
-            color={activeTab === tab.key ? colors.primary : colors.textSecondary}
+      {tabs.map((tab) => {
+        const isActive = activeTab === tab.key;
+        const isMonthTab = tab.key === 'month';
+        return (
+          <TouchableOpacity
+            key={tab.key}
+            style={[styles.tab, isActive && styles.activeTab]}
+            onPress={() => {
+              if (isMonthTab && isActive) {
+                // Already on month tab — toggle the dropdown
+                setMonthPickerVisible((v) => !v);
+              } else {
+                setMonthPickerVisible(false);
+                setActiveTab(tab.key);
+              }
+            }}
+            activeOpacity={0.7}
           >
-            {tab.label}
-          </Text>
-          {activeTab === tab.key && <View style={[styles.tabIndicator, { backgroundColor: colors.primary }]} />}
-        </TouchableOpacity>
-      ))}
+            <View style={styles.tabInner}>
+              <Text
+                variant="small"
+                weight={isActive ? 'bold' : 'regular'}
+                color={isActive ? colors.primary : colors.textSecondary}
+              >
+                {tab.label}
+              </Text>
+              {isMonthTab && monthOptions.length > 0 && (
+                <Ionicons
+                  name={isActive && monthPickerVisible ? 'chevron-up' : 'chevron-down'}
+                  size={12}
+                  color={isActive ? colors.primary : colors.textSecondary}
+                  style={styles.tabChevron}
+                />
+              )}
+            </View>
+            {isActive && <View style={[styles.tabIndicator, { backgroundColor: colors.primary }]} />}
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
+
+  const renderMonthPicker = () => {
+    if (activeTab !== 'month' || !monthPickerVisible || monthOptions.length === 0) return null;
+    return (
+      <View style={[styles.monthDropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        {monthOptions.map((opt, index) => {
+          const isSelected = index === safeMonthIndex;
+          return (
+            <TouchableOpacity
+              key={`${opt.year}-${opt.month}`}
+              style={[
+                styles.monthDropdownOption,
+                { borderBottomColor: colors.border },
+                isSelected && { backgroundColor: colors.primary + '14' },
+              ]}
+              onPress={() => {
+                setSelectedMonthIndex(index);
+                setMonthPickerVisible(false);
+              }}
+              activeOpacity={0.7}
+            >
+              <Text
+                variant="small"
+                weight={isSelected ? 'semiBold' : 'regular'}
+                color={isSelected ? colors.primary : colors.textPrimary}
+              >
+                {opt.label}
+              </Text>
+              {isSelected && (
+                <Ionicons name="checkmark" size={16} color={colors.primary} />
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  };
 
   const renderStatsCards = () => {
     if (!stats) return null;
@@ -485,6 +595,7 @@ export const ProfileScreen: React.FC = () => {
           </Text>
 
           {renderTabBar()}
+          {renderMonthPicker()}
 
           {statsLoading && !stats ? (
             <View style={styles.statsLoading}>
@@ -892,8 +1003,8 @@ const createStyles = (colors: typeof LightColors) => StyleSheet.create({
   tabIndicator: {
     position: 'absolute',
     bottom: 0,
-    left: '20%',
-    right: '20%',
+    alignSelf: 'center',
+    width: '60%',
     height: 2.5,
     borderRadius: 2,
   },
@@ -1027,5 +1138,29 @@ const createStyles = (colors: typeof LightColors) => StyleSheet.create({
     color: '#ffffff',
     fontSize: 15,
     fontFamily: 'Poppins_500Medium',
+  },
+
+  // ── Month Dropdown ────────────────────────────────────────────────────
+  tabInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  tabChevron: {
+    marginTop: 1,
+  },
+  monthDropdown: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: BorderRadius.large,
+    marginBottom: Spacing.lg,
+    overflow: 'hidden',
+  },
+  monthDropdownOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 11,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
 });
