@@ -17,7 +17,7 @@ interface UseStatisticsReturn {
   refresh: () => Promise<void>;
 }
 
-export const useStatistics = (period: StatsPeriod): UseStatisticsReturn => {
+export const useStatistics = (period: StatsPeriod, dateRange?: { startDate: number; endDate: number }): UseStatisticsReturn => {
   const { syncVersion } = useSync();
   const [stats, setStats] = useState<Statistics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +30,7 @@ export const useStatistics = (period: StatsPeriod): UseStatisticsReturn => {
         setLoading(true);
       }
       setError(null);
-      const statistics = await StorageService.getStatistics(period);
+      const statistics = await StorageService.getStatistics(period, dateRange);
       setStats(statistics);
     } catch (err) {
       console.error('Error loading statistics:', err);
@@ -38,7 +38,7 @@ export const useStatistics = (period: StatsPeriod): UseStatisticsReturn => {
     } finally {
       setLoading(false);
     }
-  }, [period]);
+  }, [period, dateRange?.startDate, dateRange?.endDate]);
 
   const refresh = useCallback(async () => {
     await loadStatistics();
