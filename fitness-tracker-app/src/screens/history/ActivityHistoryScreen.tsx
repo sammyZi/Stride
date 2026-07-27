@@ -36,6 +36,7 @@ interface ActivityHistoryScreenProps {
 const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ navigation, route }) => {
   const {
     activities,
+    allActivities,
     loading,
     loadingMore,
     refreshing,
@@ -55,12 +56,17 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
   // Filter modal state
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [units, setUnits] = useState<UnitSystem>('metric');
+  const [registeredAt, setRegisteredAt] = useState<number | undefined>(undefined);
 
-  // Load units from settings
+  // Load units and registration date
   useEffect(() => {
     const loadSettings = async () => {
-      const settings = await StorageService.getSettings();
+      const [settings, profile] = await Promise.all([
+        StorageService.getSettings(),
+        StorageService.getUserProfile(),
+      ]);
       setUnits(settings?.units || 'metric');
+      if (profile?.createdAt) setRegisteredAt(profile.createdAt);
     };
     loadSettings();
   }, []);
@@ -169,7 +175,7 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
       {activities.length > 0 && (
         <>
           <View style={styles.calendarGap} />
-          <MonthlyCalendarCard activities={activities} units={units} />
+          <MonthlyCalendarCard activities={allActivities} units={units} registeredAt={registeredAt} />
           <View style={styles.sectionSeparator}>
             <View style={styles.separatorLine} />
             <Text variant="small" weight="semiBold" color={colors.textSecondary}>
@@ -180,7 +186,7 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
         </>
       )}
     </View>
-  ), [activityTypeFilter, dateRangeFilter, activities, units, colors]);
+  ), [activityTypeFilter, dateRangeFilter, activities, allActivities, units, registeredAt, colors]);
 
   const renderListFooter = React.useCallback(() => {
     if (activities.length === 0) return null;

@@ -32,6 +32,7 @@ export const GoalsScreen: React.FC = () => {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [achievedExpanded, setAchievedExpanded] = useState(false);
 
   const handleCreateGoal = async (
     type: 'distance' | 'frequency' | 'duration',
@@ -262,33 +263,48 @@ export const GoalsScreen: React.FC = () => {
 
     return (
       <View style={styles.section}>
-        <View style={styles.sectionHeader}>
+        <TouchableOpacity
+          style={styles.sectionHeader}
+          onPress={() => setAchievedExpanded((prev) => !prev)}
+          activeOpacity={0.7}
+        >
           <View style={styles.sectionTitleRow}>
             <Ionicons name="trophy" size={16} color={colors.warning} />
             <Text variant="medium" weight="semiBold" color={colors.textPrimary}>
               Achieved
             </Text>
           </View>
-          <View style={[styles.countBadge, { backgroundColor: colors.warning + '18' }]}>
-            <Text variant="extraSmall" weight="bold" color={colors.warning}>
-              {achievedGoals.length}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.goalsGrid}>
-          {achievedGoals.slice(0, 5).map((goal) => (
-            <GoalCard
-              key={goal.id}
-              goal={goal}
-              units={settings.units}
-              onPress={() => handleGoalPress(goal)}
+          <View style={styles.sectionTitleRow}>
+            <View style={[styles.countBadge, { backgroundColor: colors.warning + '18' }]}>
+              <Text variant="extraSmall" weight="bold" color={colors.warning}>
+                {achievedGoals.length}
+              </Text>
+            </View>
+            <Ionicons
+              name={achievedExpanded ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color={colors.textSecondary}
             />
-          ))}
-        </View>
-        {achievedGoals.length > 5 && (
-          <Text variant="small" color={colors.textSecondary} align="center" style={styles.moreText}>
-            +{achievedGoals.length - 5} more achieved goals
-          </Text>
+          </View>
+        </TouchableOpacity>
+        {achievedExpanded && (
+          <>
+            <View style={styles.goalsGrid}>
+              {achievedGoals.slice(0, 5).map((goal) => (
+                <GoalCard
+                  key={goal.id}
+                  goal={goal}
+                  units={settings.units}
+                  onPress={() => handleGoalPress(goal)}
+                />
+              ))}
+            </View>
+            {achievedGoals.length > 5 && (
+              <Text variant="small" color={colors.textSecondary} align="center" style={styles.moreText}>
+                +{achievedGoals.length - 5} more achieved goals
+              </Text>
+            )}
+          </>
         )}
       </View>
     );

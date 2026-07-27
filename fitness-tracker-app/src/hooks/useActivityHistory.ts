@@ -17,6 +17,7 @@ interface UseActivityHistoryOptions {
 
 interface UseActivityHistoryReturn {
   activities: Activity[];
+  allActivities: Activity[];
   loading: boolean;
   loadingMore: boolean;
   refreshing: boolean;
@@ -175,6 +176,7 @@ export const useActivityHistory = (
 
   return {
     activities,
+    allActivities,
     loading,
     loadingMore,
     refreshing,
