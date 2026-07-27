@@ -36,6 +36,7 @@ interface ActivityHistoryScreenProps {
 const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ navigation, route }) => {
   const {
     activities,
+    allActivities,
     loading,
     loadingMore,
     refreshing,
@@ -174,7 +175,7 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
       {activities.length > 0 && (
         <>
           <View style={styles.calendarGap} />
-          <MonthlyCalendarCard activities={activities} units={units} registeredAt={registeredAt} />
+          <MonthlyCalendarCard activities={allActivities} units={units} registeredAt={registeredAt} />
           <View style={styles.sectionSeparator}>
             <View style={styles.separatorLine} />
             <Text variant="small" weight="semiBold" color={colors.textSecondary}>
@@ -185,7 +186,7 @@ const ActivityHistoryScreenComponent: React.FC<ActivityHistoryScreenProps> = ({ 
         </>
       )}
     </View>
-  ), [activityTypeFilter, dateRangeFilter, activities, units, colors]);
+  ), [activityTypeFilter, dateRangeFilter, activities, allActivities, units, registeredAt, colors]);
 
   const renderListFooter = React.useCallback(() => {
     if (activities.length === 0) return null;
